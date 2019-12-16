@@ -23,6 +23,11 @@ allprojects {
         jcenter()
         mavenCentral()
     }
+    project.task(Test){
+        println("${project} has prop $it")
+    }
+
+
 }
 
 task clean(type: Delete) {
