@@ -17,9 +17,7 @@ package com.bytedance.scene.utlity;
 
 import android.view.View;
 import android.view.ViewParent;
-
 import androidx.annotation.Nullable;
-
 import com.bytedance.scene.R;
 import com.bytedance.scene.Scene;
 

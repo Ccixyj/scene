@@ -19,8 +19,10 @@ import android.app.Activity;
 import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Bundle;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.lifecycle.LifecycleOwner;
 import com.bytedance.scene.interfaces.ActivityResultCallback;
@@ -65,6 +67,33 @@ public class ActivityCompatibilityUtility {
                         return;
                     }
                     fragment.startActivityForResultByScene(lifecycleOwner, intent, requestCode, resultCallback);
+                }
+            });
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+    @MainThread
+    public static void startActivityForResult(@NonNull final Activity activity, @NonNull final LifecycleOwner lifecycleOwner,
+                                              @NonNull final Intent intent, final int requestCode,
+                                              @Nullable final Bundle options,
+                                              @NonNull final ActivityResultCallback resultCallback) {
+        ThreadUtility.checkUIThread();
+        if (isDestroyed(activity, lifecycleOwner)) {
+            return;
+        }
+        final SceneActivityCompatibilityLayerFragment fragment = install(activity);
+        if (fragment.isAdded()) {
+            fragment.startActivityForResultByScene(lifecycleOwner, intent, requestCode, options, resultCallback);
+        } else {
+            fragment.addOnActivityCreatedCallback(new SceneActivityCompatibilityLayerFragment.OnActivityCreatedCallback() {
+                @Override
+                public void onActivityCreated() {
+                    fragment.removeOnActivityCreatedCallback(this);
+                    if (isDestroyed(activity, lifecycleOwner)) {
+                        return;
+                    }
+                    fragment.startActivityForResultByScene(lifecycleOwner, intent, requestCode, options, resultCallback);
                 }
             });
         }

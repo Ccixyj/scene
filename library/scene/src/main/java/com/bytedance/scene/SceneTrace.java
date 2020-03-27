@@ -17,7 +17,6 @@ package com.bytedance.scene;
 
 import android.os.Build;
 import android.os.Trace;
-
 import androidx.annotation.NonNull;
 
 public final class SceneTrace {

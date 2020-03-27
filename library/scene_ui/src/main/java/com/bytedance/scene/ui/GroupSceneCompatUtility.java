@@ -17,24 +17,20 @@ package com.bytedance.scene.ui;
 
 import android.os.Bundle;
 import android.view.View;
-
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
-
-import com.bytedance.scene.GroupSceneDelegate;
-import com.bytedance.scene.Scene;
-import com.bytedance.scene.SceneComponentFactory;
-import com.bytedance.scene.SceneLifecycleDispatcher;
-import com.bytedance.scene.ViewFinder;
+import com.bytedance.scene.*;
 import com.bytedance.scene.group.GroupScene;
 import com.bytedance.scene.utlity.SceneInstanceUtility;
 import com.bytedance.scene.utlity.ThreadUtility;
 import com.bytedance.scene.utlity.Utility;
 
+import java.util.HashSet;
+import java.util.WeakHashMap;
 
 public class GroupSceneCompatUtility {
     private GroupSceneCompatUtility() {

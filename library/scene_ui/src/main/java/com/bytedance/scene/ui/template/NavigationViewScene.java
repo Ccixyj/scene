@@ -27,14 +27,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.widget.Toolbar;
-import androidx.collection.SparseArrayCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.bytedance.scene.Scene;
 import com.bytedance.scene.group.GroupScene;
+import com.bytedance.scene.navigation.OnBackPressedListener;
 import com.bytedance.scene.ui.GroupSceneUIUtility;
-import com.google.android.material.navigation.NavigationView;
 import com.bytedance.scene.ui.R;
+import com.google.android.material.navigation.NavigationView;
 
 import java.util.LinkedHashMap;
 
@@ -81,6 +81,16 @@ public abstract class NavigationViewScene extends GroupScene {
             @Override
             public void onClick(View v) {
                 mDrawerLayout.openDrawer(Gravity.LEFT);
+            }
+        });
+        requireNavigationScene().addOnBackPressedListener(this, new OnBackPressedListener() {
+            @Override
+            public boolean onBackPressed() {
+                if (mDrawerLayout.isDrawerOpen(mNavigationView)) {
+                    mDrawerLayout.closeDrawer(mNavigationView);
+                    return true;
+                }
+                return false;
             }
         });
     }

@@ -29,6 +29,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.bytedance.scene.Scene;
@@ -42,9 +43,19 @@ import com.bytedance.scene.group.ReuseGroupScene;
 import com.bytedance.scene.interfaces.PopOptions;
 import com.bytedance.scene.interfaces.PushOptions;
 import com.bytedance.scene.parcel.ParcelConstants;
-import com.bytedance.scene.utlity.*;
+import com.bytedance.scene.utlity.AnimatorUtility;
+import com.bytedance.scene.utlity.CancellationSignalList;
+import com.bytedance.scene.utlity.NonNullPair;
+import com.bytedance.scene.utlity.Predicate;
+import com.bytedance.scene.utlity.SceneInternalException;
+import com.bytedance.scene.utlity.Utility;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Priority to ensure that the life cycle is correct,
@@ -359,7 +370,8 @@ class NavigationSceneManager {
         List<NonNullPair<LifecycleOwner, OnBackPressedListener>> copy = new ArrayList<>(mOnBackPressedListenerList);
         for (int i = copy.size() - 1; i >= 0; i--) {
             NonNullPair<LifecycleOwner, OnBackPressedListener> pair = copy.get(i);
-            if (pair.second.onBackPressed()) {
+            if (pair.first.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED)
+                    && pair.second.onBackPressed()) {
                 return true;
             }
         }
