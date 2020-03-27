@@ -177,7 +177,7 @@ public class GroupSceneUIUtility {
 
     public static void setupWithViewPager(@NonNull final ViewPager viewPager,
                                           @NonNull final GroupScene groupScene,
-                                          @NonNull final List<UserVisibleHintGroupScene> children) {
+                                          @NonNull final List<UserVisibleHintGroupScene> childrenList) {
         if (viewPager.getAdapter() != null) {
             throw new IllegalArgumentException("ViewPager already have a adapter");
         }
@@ -186,12 +186,12 @@ public class GroupSceneUIUtility {
 
             @Override
             public int getCount() {
-                return children.size();
+                return childrenList.size();
             }
 
             @Override
             public UserVisibleHintGroupScene getItem(int position) {
-                return children.get(position);
+                return childrenList.get(position);
             }
         };
         viewPager.setAdapter(scenePageAdapter);
@@ -199,14 +199,14 @@ public class GroupSceneUIUtility {
 
     public static void setupWithViewPager(@NonNull final ViewPager viewPager,
                                           @NonNull final GroupScene groupScene,
-                                          @NonNull final LinkedHashMap<String, UserVisibleHintGroupScene> children) {
+                                          @NonNull final Map<String, UserVisibleHintGroupScene> childrenMap) {
         if (viewPager.getAdapter() != null) {
             throw new IllegalArgumentException("ViewPager already have a adapter");
         }
-        final List<String> titleList = new ArrayList<>(children.keySet());
+        final List<String> titleList = new ArrayList<>(childrenMap.keySet());
         final List<UserVisibleHintGroupScene> sceneList = new ArrayList<>();
         for (String key : titleList) {
-            sceneList.add(children.get(key));
+            sceneList.add(childrenMap.get(key));
         }
         ScenePageAdapter scenePageAdapter = new ScenePageAdapter(groupScene) {
 
