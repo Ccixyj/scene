@@ -17,6 +17,7 @@ package com.bytedance.scene.navigation;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleOwner;
 import android.content.Context;
 import android.os.Build;
@@ -32,6 +33,7 @@ import android.view.ViewGroup;
 
 import com.bytedance.scene.Scene;
 import com.bytedance.scene.SceneComponentFactory;
+import com.bytedance.scene.SceneTrace;
 import com.bytedance.scene.State;
 import com.bytedance.scene.animation.AnimationInfo;
 import com.bytedance.scene.animation.NavigationAnimationExecutor;
@@ -82,6 +84,9 @@ class AsyncHandler extends Handler {
 }
 
 class NavigationSceneManager {
+    private static final String TRACE_EXECUTE_OPERATION_TAG = "NavigationSceneManager#executeOperation";
+    private static final String TRACE_EXECUTE_PENDING_OPERATION_TAG = "NavigationSceneManager#executePendingOperation";
+
     private NavigationScene mNavigationScene;
     private final RecordStack mBackStackList = new RecordStack();
     private NavigationListener mNavigationListener;
@@ -164,9 +169,11 @@ class NavigationSceneManager {
                             throw new SceneInternalException("miss endSuppressStackOperation(), mIsNavigationStateChangeInProgress content " + exceptionInfo);
                         }
                         if (canExecuteNavigationStackOperation()) {
+                            SceneTrace.beginSection(TRACE_EXECUTE_OPERATION_TAG);
                             String suppressTag = beginSuppressStackOperation("NavigationManager execute operation by Handler.post()");
                             operation.execute(EMPTY_RUNNABLE);
                             endSuppressStackOperation(suppressTag);
+                            SceneTrace.endSection();
                         } else {
                             mPendingActionList.addLast(operation);
                             mLastPendingActionListItemTimestamp = System.currentTimeMillis();
@@ -176,9 +183,11 @@ class NavigationSceneManager {
                 mCurrentScheduledStackOperationCount++;
                 mHandler.postAsyncIfNeeded(task);
             } else {
+                SceneTrace.beginSection(TRACE_EXECUTE_OPERATION_TAG);
                 String suppressTag = beginSuppressStackOperation("NavigationManager execute operation directly");
                 operation.execute(EMPTY_RUNNABLE);
                 endSuppressStackOperation(suppressTag);
+                SceneTrace.endSection();
             }
         } else {
             /**
@@ -210,11 +219,15 @@ class NavigationSceneManager {
     }
 
     public void dispatchCurrentChildState(State state) {
+        String suppressTag = beginSuppressStackOperation("NavigationManager dispatchCurrentChildState");
         new SyncCurrentSceneStateOperation(state).execute(EMPTY_RUNNABLE);
+        endSuppressStackOperation(suppressTag);
     }
 
-    public void dispatchChildrenState(State state) {
-        new SyncAllSceneStateOperation(state).execute(EMPTY_RUNNABLE);
+    public void dispatchChildrenState(State state, boolean reverseOrder) {
+        String suppressTag = beginSuppressStackOperation("NavigationManager dispatchChildrenState");
+        new SyncAllSceneStateOperation(state, reverseOrder).execute(EMPTY_RUNNABLE);
+        endSuppressStackOperation(suppressTag);
     }
 
     public void setResult(Scene scene, Object result) {
@@ -265,7 +278,7 @@ class NavigationSceneManager {
         if (this.mPendingActionList.size() == 0 || !canExecuteNavigationStackOperation()) {
             return;
         }
-
+        SceneTrace.beginSection(TRACE_EXECUTE_PENDING_OPERATION_TAG);
         /*
          * Only the last one need to do the transition animation, the previous doesn't.
          * If not, it is easy to see that the jump animation of SchemaActivity not be executed,
@@ -288,6 +301,7 @@ class NavigationSceneManager {
             throw new IllegalStateException("why mPendingActionList still have item?");
         }
         this.mLastPendingActionListItemTimestamp = -1L;
+        SceneTrace.endSection();
     }
 
     public boolean canPop() {
@@ -345,7 +359,8 @@ class NavigationSceneManager {
         List<NonNullPair<LifecycleOwner, OnBackPressedListener>> copy = new ArrayList<>(mOnBackPressedListenerList);
         for (int i = copy.size() - 1; i >= 0; i--) {
             NonNullPair<LifecycleOwner, OnBackPressedListener> pair = copy.get(i);
-            if (pair.second.onBackPressed()) {
+            if (pair.first.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED)
+                    && pair.second.onBackPressed()) {
                 return true;
             }
         }
@@ -407,6 +422,8 @@ class NavigationSceneManager {
                     scene.dispatchResume();
                     moveState(navigationScene, scene, to, bundle, causedByActivityLifeCycle, endAction);
                     break;
+                default:
+                    throw new SceneInternalException("unreachable state case " + currentState.getName());
             }
         } else {
             switch (currentState) {
@@ -437,6 +454,8 @@ class NavigationSceneManager {
                     scene.dispatchDetachActivity();
                     moveState(navigationScene, scene, to, bundle, causedByActivityLifeCycle, endAction);
                     break;
+                default:
+                    throw new SceneInternalException("unreachable state case " + currentState.getName());
             }
         }
     }
@@ -972,9 +991,11 @@ class NavigationSceneManager {
 
     private class SyncAllSceneStateOperation implements Operation {
         private final State state;
+        private final boolean reverseOrder;
 
-        private SyncAllSceneStateOperation(State state) {
+        private SyncAllSceneStateOperation(State state, boolean reverseOrder) {
             this.state = state;
+            this.reverseOrder = reverseOrder;
         }
 
         @Override
@@ -985,7 +1006,13 @@ class NavigationSceneManager {
             }
 
             List<Record> recordList = mBackStackList.getCurrentRecordList();
-            for (final Record record : recordList) {
+            if (reverseOrder) {
+                recordList = new ArrayList<>(recordList);
+                Collections.reverse(recordList);
+            }
+
+            for (int i = 0; i < recordList.size(); i++) {
+                Record record = recordList.get(i);
                 Scene scene = record.mScene;
                 moveState(mNavigationScene, scene, state, null, true, null);
             }

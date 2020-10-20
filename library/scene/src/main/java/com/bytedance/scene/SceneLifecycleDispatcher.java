@@ -16,94 +16,103 @@
 package com.bytedance.scene;
 
 import android.app.Activity;
-import android.content.Intent;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RestrictTo;
 import android.view.ViewGroup;
-import com.bytedance.scene.navigation.NavigationScene;
 
-//TODO merge SceneLifecycleDispatcher SceneLifecycleManager?
-public final class SceneLifecycleDispatcher implements SceneContainerLifecycleCallback {
+import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
+
+/**
+ * TODO merge SceneLifecycleDispatcher SceneLifecycleManager?
+ *
+ * @hide
+ */
+@RestrictTo(LIBRARY_GROUP)
+public class SceneLifecycleDispatcher<T extends Scene & SceneParent> implements SceneContainerLifecycleCallback {
     private static final String TAG = "SCENE";
+
+    private static final String TRACE_ACTIVITY_CREATED_TAG = "SceneLifecycleDispatcher#OnActivityCreated";
+    private static final String TRACE_START_TAG = "SceneLifecycleDispatcher#OnStart";
+    private static final String TRACE_RESUME_TAG = "SceneLifecycleDispatcher#OnResume";
+    private static final String TRACE_PAUSE_TAG = "SceneLifecycleDispatcher#OnPause";
+    private static final String TRACE_STOP_TAG = "SceneLifecycleDispatcher#OnStop";
+    private static final String TRACE_DESTROY_VIEW_TAG = "SceneLifecycleDispatcher#OnDestroyView";
+    private static final String TRACE_SAVE_INSTANCE_STATE_TAG = "SceneLifecycleDispatcher#OnSaveInstance";
+
     @IdRes
     private final int mSceneContainerViewId;
     private final ViewFinder mViewFinder;
-    private final NavigationScene mNavigationScene;
-    private final NavigationScene.NavigationSceneHost mNavigationSceneHost;
+    private final T mScene;
     private final Scope.RootScopeFactory mRootScopeFactory;
     private final boolean mSupportRestore;
-    private NavigationSceneAvailableCallback mNavigationSceneAvailableCallback;
-    private final SceneComponentFactory mRootSceneComponentFactory;
-    private final SceneLifecycleManager mLifecycleManager = new SceneLifecycleManager();
+    private final SceneLifecycleManager<T> mLifecycleManager = new SceneLifecycleManager<>();
 
     public SceneLifecycleDispatcher(@IdRes int sceneContainerViewId,
                                     ViewFinder viewFinder,
-                                    NavigationScene rootScene,
-                                    NavigationScene.NavigationSceneHost navigationSceneHost,
+                                    T rootScene,
                                     Scope.RootScopeFactory rootScopeFactory,
-                                    SceneComponentFactory sceneComponentFactory,
                                     boolean supportRestore) {
         this.mSceneContainerViewId = sceneContainerViewId;
         this.mViewFinder = viewFinder;
-        this.mNavigationScene = rootScene;
-        this.mNavigationSceneHost = navigationSceneHost;
+        this.mScene = rootScene;
         this.mRootScopeFactory = rootScopeFactory;
-        this.mRootSceneComponentFactory = sceneComponentFactory;
         this.mSupportRestore = supportRestore;
-    }
-
-    public void setNavigationSceneAvailableCallback(NavigationSceneAvailableCallback callback) {
-        this.mNavigationSceneAvailableCallback = callback;
-        if (this.mNavigationScene != null) {
-            this.mNavigationSceneAvailableCallback.onNavigationSceneAvailable(this.mNavigationScene);
-        }
-    }
-
-    public NavigationScene getNavigationScene() {
-        return this.mNavigationScene;
     }
 
     @Override
     public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
+        SceneTrace.beginSection(TRACE_ACTIVITY_CREATED_TAG);
         ViewGroup viewGroup = this.mViewFinder.requireViewById(this.mSceneContainerViewId);
-        this.mLifecycleManager.onActivityCreated(activity, viewGroup,
-                this.mNavigationScene, this.mNavigationSceneHost, this.mRootScopeFactory,
-                this.mRootSceneComponentFactory, this.mSupportRestore ? savedInstanceState : null);
+        this.mLifecycleManager.onActivityCreated(activity, viewGroup, this.mScene, this.mRootScopeFactory,
+                this.mSupportRestore, this.mSupportRestore ? savedInstanceState : null);
+        SceneTrace.endSection();
     }
 
     @Override
     public void onStarted() {
+        SceneTrace.beginSection(TRACE_START_TAG);
         this.mLifecycleManager.onStart();
+        SceneTrace.endSection();
     }
 
     @Override
     public void onResumed() {
+        SceneTrace.beginSection(TRACE_RESUME_TAG);
         this.mLifecycleManager.onResume();
+        SceneTrace.endSection();
     }
 
     @Override
     public void onPaused() {
+        SceneTrace.beginSection(TRACE_PAUSE_TAG);
         this.mLifecycleManager.onPause();
+        SceneTrace.endSection();
     }
 
     @Override
     public void onStopped() {
+        SceneTrace.beginSection(TRACE_STOP_TAG);
         this.mLifecycleManager.onStop();
+        SceneTrace.endSection();
     }
 
     @Override
     public void onViewDestroyed() {
+        SceneTrace.beginSection(TRACE_DESTROY_VIEW_TAG);
         this.mLifecycleManager.onDestroyView();
+        SceneTrace.endSection();
     }
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         if (this.mSupportRestore) {
-            outState.putString(TAG, this.mNavigationScene.getClass().getName());
+            outState.putString(TAG, this.mScene.getClass().getName());
+            SceneTrace.beginSection(TRACE_SAVE_INSTANCE_STATE_TAG);
             this.mLifecycleManager.onSaveInstanceState(outState);
+            SceneTrace.endSection();
         }
     }
 }

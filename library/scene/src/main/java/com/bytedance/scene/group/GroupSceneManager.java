@@ -31,6 +31,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.bytedance.scene.Scene;
+import com.bytedance.scene.SceneTrace;
 import com.bytedance.scene.State;
 import com.bytedance.scene.animation.AnimationOrAnimator;
 import com.bytedance.scene.animation.AnimationOrAnimatorFactory;
@@ -125,35 +126,27 @@ class GroupRecordList {
     private static final String KEY_TAG = ParcelConstants.KEY_GROUP_RECORD_LIST;
 
     private List<GroupRecord> mSceneList = new ArrayList<>();
+    private final Map<Scene, GroupRecord> mSceneMap = new HashMap<>();
+    private final Map<String, GroupRecord> mTagMap = new HashMap<>();
 
     public void add(GroupRecord record) {
-        mSceneList.add(record);
+        this.mSceneList.add(record);
+        this.mSceneMap.put(record.scene, record);
+        this.mTagMap.put(record.tag, record);
     }
 
     public void remove(GroupRecord record) {
-        mSceneList.remove(record);
+        this.mSceneList.remove(record);
+        this.mSceneMap.remove(record.scene);
+        this.mTagMap.remove(record.tag);
     }
 
     public GroupRecord findByScene(Scene scene) {
-        GroupRecord groupRecord = null;
-        for (GroupRecord record : mSceneList) {
-            if (record.scene == scene) {
-                groupRecord = record;
-                break;
-            }
-        }
-        return groupRecord;
+        return this.mSceneMap.get(scene);
     }
 
     public GroupRecord findByTag(String tag) {
-        GroupRecord groupRecord = null;
-        for (GroupRecord record : mSceneList) {
-            if (tag.equals(record.tag)) {
-                groupRecord = record;
-                break;
-            }
-        }
-        return groupRecord;
+        return this.mTagMap.get(tag);
     }
 
     public GroupRecord findByView(View view) {
@@ -190,15 +183,21 @@ class GroupRecordList {
         this.mSceneList = new ArrayList<>(bundle.<GroupRecord>getParcelableArrayList(KEY_TAG));
         for (GroupRecord record : this.mSceneList) {
             record.scene = SceneInstanceUtility.getInstanceFromClassName(context, record.sceneClassName, null);
+            this.mSceneMap.put(record.scene, record);
+            this.mTagMap.put(record.tag, record);
         }
     }
 
     public void clear() {
         this.mSceneList.clear();
+        this.mSceneMap.clear();
+        this.mTagMap.clear();
     }
 }
 
 class GroupSceneManager {
+    private static final String TRACE_EXECUTE_OPERATION_TAG = "GroupSceneManager#executeOperation";
+
     @NonNull
     private final GroupScene mGroupScene;
     @Nullable
@@ -228,7 +227,9 @@ class GroupSceneManager {
     };
 
     private void executeOperation(final Operation operation) {
+        SceneTrace.beginSection(TRACE_EXECUTE_OPERATION_TAG);
         operation.execute(EMPTY_RUNNABLE);
+        SceneTrace.endSection();
     }
 
     private boolean mIsInTransaction = false;
@@ -317,7 +318,7 @@ class GroupSceneManager {
     private void checkStateChange(@NonNull Scene scene) {
         for (Pair<Scene, String> pair : this.mCurrentTrackMoveStateSceneSet) {
             if (pair.first == scene) {
-                throw new IllegalStateException("Cant add/remove/show/hide " + scene.getClass().getSimpleName() + " before it finish previous add/remove/show/hide operation or in its lifecycle method");
+                throw new IllegalStateException("Cant add/remove/show/hide " + scene.getClass().getCanonicalName() + " before it finish previous add/remove/show/hide operation or in its lifecycle method");
             }
         }
     }
@@ -325,7 +326,7 @@ class GroupSceneManager {
     private void beginTrackSceneStateChange(@NonNull Scene scene) {
         for (Pair<Scene, String> pair : this.mCurrentTrackMoveStateSceneSet) {
             if (pair.first == scene) {
-                throw new SceneInternalException("Target scene is already tracked");
+                throw new SceneInternalException("Target scene " + scene.getClass().getCanonicalName() + " is already tracked");
             }
         }
         //forbid NavigationScene execute navigation stack operation immediately, otherwise GroupScene may sync lifecycle to child,
@@ -350,7 +351,7 @@ class GroupSceneManager {
             }
         }
         if (target == null) {
-            throw new SceneInternalException("Target scene is not tracked");
+            throw new SceneInternalException("Target scene " + scene.getClass().getCanonicalName() + " is not tracked");
         }
         String suppressTag = target.second;
         if (suppressTag != null) {
@@ -951,6 +952,8 @@ class GroupSceneManager {
                     scene.dispatchResume();
                     moveState(groupScene, scene, to, forceRemove, endAction);
                     break;
+                default:
+                    throw new SceneInternalException("unreachable state case " + currentState.getName());
             }
         } else {
             switch (currentState) {
@@ -983,6 +986,8 @@ class GroupSceneManager {
                     scene.dispatchDetachActivity();
                     moveState(groupScene, scene, to, forceRemove, endAction);
                     break;
+                default:
+                    throw new SceneInternalException("unreachable state case " + currentState.getName());
             }
         }
     }

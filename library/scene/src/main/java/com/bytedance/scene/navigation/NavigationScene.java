@@ -42,14 +42,9 @@ import com.bytedance.scene.interfaces.ActivityResultCallback;
 import com.bytedance.scene.interfaces.PermissionResultCallback;
 import com.bytedance.scene.interfaces.PopOptions;
 import com.bytedance.scene.interfaces.PushOptions;
-import com.bytedance.scene.utlity.DispatchWindowInsetsListener;
-import com.bytedance.scene.utlity.NonNullPair;
-import com.bytedance.scene.utlity.SceneInstanceUtility;
-import com.bytedance.scene.utlity.SoftInputUtility;
-import com.bytedance.scene.utlity.ThreadUtility;
-import com.bytedance.scene.utlity.Utility;
+import com.bytedance.scene.utlity.*;
 import com.bytedance.scene.view.NavigationFrameLayout;
-import com.bytedance.scene.view.NoneTouchFrameLayout;
+import com.bytedance.scene.view.AnimationContainerLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,12 +76,10 @@ import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
  * 5.Child: onDestroyView -> onDestroy -> onDetach
  * 6.Parent: onDestroyView -> onDestroy -> onDetach
  */
-public final class NavigationScene extends Scene implements NavigationListener {
-    public static interface NavigationSceneHost {
-        boolean isSupportRestore();
-    }
+public final class NavigationScene extends Scene implements NavigationListener, SceneParent {
+    private static final String KEY_NAVIGATION_SCENE_SUPPORT_RESTORE_ARGUMENT = "bd-scene-navigation:support_restore";
 
-    private NavigationSceneHost mNavigationSceneHost;
+    private boolean mSupportRestore = true;//default support restore
     private SceneComponentFactory mRootSceneComponentFactory;   // Use this when destroying recovery
     NavigationSceneOptions mNavigationSceneOptions;
 
@@ -168,6 +161,7 @@ public final class NavigationScene extends Scene implements NavigationListener {
     }
 
     @NonNull
+    @Override
     public List<Scene> getSceneList() {
         return mNavigationSceneManager.getCurrentSceneList();
     }
@@ -181,12 +175,18 @@ public final class NavigationScene extends Scene implements NavigationListener {
         return this.mDefaultNavigationAnimationExecutor;
     }
 
-    public void setNavigationSceneHost(@Nullable NavigationSceneHost navigationSceneHost) {
-        this.mNavigationSceneHost = navigationSceneHost;
-    }
-
     public void setRootSceneComponentFactory(@Nullable SceneComponentFactory rootSceneComponentFactory) {
         this.mRootSceneComponentFactory = rootSceneComponentFactory;
+    }
+
+    @Override
+    public void disableSupportRestore() {
+        this.mSupportRestore = false;
+    }
+
+    @Override
+    public boolean isSupportRestore() {
+        return this.mSupportRestore;
     }
 
     private void createRootSceneIfNeeded() {
@@ -248,19 +248,6 @@ public final class NavigationScene extends Scene implements NavigationListener {
 
     public void push(@NonNull Scene scene) {
         push(scene, new PushOptions.Builder().build());
-    }
-
-    /**
-     * @hide
-     */
-    @RestrictTo(LIBRARY_GROUP)
-    public boolean isSupportRestore() {
-        NavigationScene navigationScene = (NavigationScene) getNavigationScene();
-        if (navigationScene != null) {
-            return navigationScene.isSupportRestore();
-        } else {
-            return mNavigationSceneHost.isSupportRestore();
-        }
     }
 
     public void push(@NonNull Scene scene, @Nullable PushOptions pushOptions) {
@@ -487,6 +474,21 @@ public final class NavigationScene extends Scene implements NavigationListener {
     }
 
     @Override
+    public final void dispatchAttachScene(@Nullable Scene parentScene) {
+        super.dispatchAttachScene(parentScene);
+        if (parentScene == null) {
+            //ignore
+        } else if (parentScene instanceof SceneParent) {
+            SceneParent sceneParent = (SceneParent) parentScene;
+            if (!sceneParent.isSupportRestore()) {
+                disableSupportRestore();
+            }
+        } else {
+            throw new SceneInternalException("unknown parent Scene type " + parentScene.getClass());
+        }
+    }
+
+    @Override
     public void onAttach() {
         super.onAttach();
     }
@@ -501,6 +503,12 @@ public final class NavigationScene extends Scene implements NavigationListener {
             throw new IllegalArgumentException("NavigationScene need NavigationSceneOptions bundle");
         }
         mNavigationSceneOptions = NavigationSceneOptions.fromBundle(getArguments());
+        if (savedInstanceState != null) {
+            boolean supportRestore = savedInstanceState.getBoolean(KEY_NAVIGATION_SCENE_SUPPORT_RESTORE_ARGUMENT, isSupportRestore());
+            if (!supportRestore) {
+                disableSupportRestore();
+            }
+        }
     }
 
     @NonNull
@@ -518,12 +526,11 @@ public final class NavigationScene extends Scene implements NavigationListener {
         }
         frameLayout.addView(mSceneContainer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        NoneTouchFrameLayout noneTouchFrameLayout = new NoneTouchFrameLayout(requireSceneContext());
+        AnimationContainerLayout animationContainerLayout = new AnimationContainerLayout(requireSceneContext());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            noneTouchFrameLayout.setOnApplyWindowInsetsListener(new DispatchWindowInsetsListener());
+            animationContainerLayout.setOnApplyWindowInsetsListener(new DispatchWindowInsetsListener());
         }
-        noneTouchFrameLayout.setTouchEnabled(false);
-        mAnimationContainer = noneTouchFrameLayout;
+        mAnimationContainer = animationContainerLayout;
         frameLayout.addView(mAnimationContainer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         if (mNavigationSceneOptions.drawWindowBackground()) {
@@ -535,7 +542,7 @@ public final class NavigationScene extends Scene implements NavigationListener {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        if (savedInstanceState != null) {
+        if (savedInstanceState != null && isSupportRestore()) {
             this.mNavigationSceneManager.restoreFromBundle(requireActivity(), savedInstanceState, this.mRootSceneComponentFactory);
         } else {
             createRootSceneIfNeeded();
@@ -546,9 +553,6 @@ public final class NavigationScene extends Scene implements NavigationListener {
             parentSceneNavigation.addOnBackPressedListener(this, new OnBackPressedListener() {
                 @Override
                 public boolean onBackPressed() {
-                    if (getState().value < State.STARTED.value) {
-                        return false;
-                    }
                     return NavigationScene.this.onBackPressed();
                 }
             });
@@ -594,7 +598,14 @@ public final class NavigationScene extends Scene implements NavigationListener {
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        this.mNavigationSceneManager.saveToBundle(outState);
+        if (outState.containsKey(KEY_NAVIGATION_SCENE_SUPPORT_RESTORE_ARGUMENT)) {
+            throw new IllegalArgumentException("outState already contains key " + KEY_NAVIGATION_SCENE_SUPPORT_RESTORE_ARGUMENT);
+        } else {
+            outState.putBoolean(KEY_NAVIGATION_SCENE_SUPPORT_RESTORE_ARGUMENT, isSupportRestore());
+            if (isSupportRestore()) {
+                this.mNavigationSceneManager.saveToBundle(outState);
+            }
+        }
     }
 
     @Override
@@ -619,7 +630,7 @@ public final class NavigationScene extends Scene implements NavigationListener {
 
     @Override
     public void onDestroyView() {
-        dispatchChildrenState(State.NONE);
+        dispatchChildrenState(State.NONE, true);
         super.onDestroyView();
     }
 
@@ -633,8 +644,8 @@ public final class NavigationScene extends Scene implements NavigationListener {
     /**
      * Destroy operation needs to synchronize all children
      */
-    private void dispatchChildrenState(@NonNull State state) {
-        mNavigationSceneManager.dispatchChildrenState(state);
+    private void dispatchChildrenState(@NonNull State state, boolean reverseOrder) {
+        mNavigationSceneManager.dispatchChildrenState(state, reverseOrder);
     }
 
     Record findRecordByScene(Scene scene) {
@@ -771,6 +782,24 @@ public final class NavigationScene extends Scene implements NavigationListener {
         }
 
         super.dispatchOnSceneCreated(scene, savedInstanceState, directChild);
+    }
+
+    /**
+     * @hide
+     */
+    @RestrictTo(LIBRARY_GROUP)
+    @Override
+    public final void dispatchOnSceneViewCreated(@NonNull Scene scene, @Nullable Bundle savedInstanceState, boolean directChild) {
+        if (scene != this) {
+            List<NonNullPair<ChildSceneLifecycleCallbacks, Boolean>> list = new ArrayList<>(mLifecycleCallbacks);
+            for (NonNullPair<ChildSceneLifecycleCallbacks, Boolean> pair : list) {
+                if (directChild || pair.second) {
+                    pair.first.onSceneViewCreated(scene, savedInstanceState);
+                }
+            }
+        }
+
+        super.dispatchOnSceneViewCreated(scene, savedInstanceState, directChild);
     }
 
     /**

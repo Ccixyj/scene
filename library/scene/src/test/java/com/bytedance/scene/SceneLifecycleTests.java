@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import com.bytedance.scene.navigation.NavigationScene;
+import com.bytedance.scene.utlity.ViewUtility;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -33,7 +34,7 @@ public class SceneLifecycleTests {
         assertEquals(testScene.getState(), State.NONE);
         assertFalse(testScene.isVisible());
 
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         NavigationScene navigationScene = pair.second;
 
@@ -51,6 +52,7 @@ public class SceneLifecycleTests {
         assertTrue(testScene.getStateHistory().contains(State.ACTIVITY_CREATED.getName()));
 
         assertEquals(testScene.getView().getContext().getSystemService(Scene.SCENE_SERVICE), testScene);
+        assertEquals(ViewUtility.findSceneByView(testScene.getView()), testScene);
         assertFalse(testScene.isVisible());
 
         testScene.requireView();

@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import com.bytedance.scene.group.GroupScene;
+import com.bytedance.scene.interfaces.PushOptions;
 import com.bytedance.scene.navigation.ConfigurationChangedListener;
 import com.bytedance.scene.navigation.NavigationListener;
 import com.bytedance.scene.navigation.NavigationScene;
@@ -31,7 +32,7 @@ public class NavigationSceneListenerTests {
     @Test
     public void testOnBackPressListener() {
         TestScene rootScene = new TestScene();
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         final NavigationScene navigationScene = pair.second;
         sceneLifecycleManager.onStart();
@@ -57,9 +58,135 @@ public class NavigationSceneListenerTests {
     }
 
     @Test
+    public void testOnBackPressListenerShouldInvokedWhenOnResume() {
+        TestScene rootScene = new TestScene();
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
+        SceneLifecycleManager sceneLifecycleManager = pair.first;
+        final NavigationScene navigationScene = pair.second;
+        sceneLifecycleManager.onStart();
+        sceneLifecycleManager.onResume();
+
+        final boolean[] value = new boolean[1];
+        navigationScene.push(new Scene() {
+            @NonNull
+            @Override
+            public View onCreateView(@NonNull LayoutInflater inflater, @NonNull ViewGroup container, @Nullable Bundle savedInstanceState) {
+                return new View(requireActivity());
+            }
+        });
+
+        navigationScene.push(new Scene() {
+            @NonNull
+            @Override
+            public View onCreateView(@NonNull LayoutInflater inflater, @NonNull ViewGroup container, @Nullable Bundle savedInstanceState) {
+                return new View(requireActivity());
+            }
+
+            @Override
+            public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+                super.onActivityCreated(savedInstanceState);
+                requireNavigationScene().addOnBackPressedListener(this, new OnBackPressedListener() {
+                    @Override
+                    public boolean onBackPressed() {
+                        value[0] = true;
+                        return true;
+                    }
+                });
+            }
+        });
+
+        assertTrue(navigationScene.onBackPressed());
+        assertTrue(value[0]);
+    }
+
+    @Test
+    public void testOnBackPressListenerShouldNotInvokedWhenOnPause() {
+        TestScene rootScene = new TestScene();
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
+        SceneLifecycleManager sceneLifecycleManager = pair.first;
+        final NavigationScene navigationScene = pair.second;
+        sceneLifecycleManager.onStart();
+        sceneLifecycleManager.onResume();
+
+        final boolean[] value = new boolean[1];
+        navigationScene.push(new Scene() {
+            @NonNull
+            @Override
+            public View onCreateView(@NonNull LayoutInflater inflater, @NonNull ViewGroup container, @Nullable Bundle savedInstanceState) {
+                return new View(requireActivity());
+            }
+
+            @Override
+            public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+                super.onActivityCreated(savedInstanceState);
+                requireNavigationScene().addOnBackPressedListener(this, new OnBackPressedListener() {
+                    @Override
+                    public boolean onBackPressed() {
+                        value[0] = true;
+                        return true;
+                    }
+                });
+            }
+        });
+
+        navigationScene.push(new Scene() {
+            @NonNull
+            @Override
+            public View onCreateView(@NonNull LayoutInflater inflater, @NonNull ViewGroup container, @Nullable Bundle savedInstanceState) {
+                return new View(requireActivity());
+            }
+        }, new PushOptions.Builder().setTranslucent(true).build());
+
+        assertTrue(navigationScene.onBackPressed());
+        assertFalse(value[0]);
+    }
+
+    @Test
+    public void testOnBackPressListenerShouldNotInvokedWhenOnStop() {
+        TestScene rootScene = new TestScene();
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
+        SceneLifecycleManager sceneLifecycleManager = pair.first;
+        final NavigationScene navigationScene = pair.second;
+        sceneLifecycleManager.onStart();
+        sceneLifecycleManager.onResume();
+
+        final boolean[] value = new boolean[1];
+        navigationScene.push(new Scene() {
+            @NonNull
+            @Override
+            public View onCreateView(@NonNull LayoutInflater inflater, @NonNull ViewGroup container, @Nullable Bundle savedInstanceState) {
+                return new View(requireActivity());
+            }
+
+            @Override
+            public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+                super.onActivityCreated(savedInstanceState);
+                requireNavigationScene().addOnBackPressedListener(this, new OnBackPressedListener() {
+                    @Override
+                    public boolean onBackPressed() {
+                        value[0] = true;
+                        return true;
+                    }
+                });
+            }
+        });
+
+        navigationScene.push(new Scene() {
+            @NonNull
+            @Override
+            public View onCreateView(@NonNull LayoutInflater inflater, @NonNull ViewGroup container, @Nullable Bundle savedInstanceState) {
+                return new View(requireActivity());
+            }
+        });
+
+        assertTrue(navigationScene.onBackPressed());
+        assertFalse(value[0]);
+    }
+
+    @Test
     public void testNavigationListener() {
         TestScene rootScene = new TestScene();
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         NavigationScene navigationScene = pair.second;
         sceneLifecycleManager.onStart();
@@ -95,7 +222,7 @@ public class NavigationSceneListenerTests {
     @Test
     public void testNavigationListenerRemoveAfterLifecycleDestroy() {
         TestScene rootScene = new TestScene();
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         NavigationScene navigationScene = pair.second;
         sceneLifecycleManager.onStart();
@@ -121,7 +248,7 @@ public class NavigationSceneListenerTests {
     @Test
     public void testNavigationListenerNotAddAfterLifecycleDestroy() {
         TestScene rootScene = new TestScene();
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         NavigationScene navigationScene = pair.second;
         sceneLifecycleManager.onStart();

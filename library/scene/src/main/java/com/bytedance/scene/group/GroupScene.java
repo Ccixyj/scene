@@ -20,15 +20,19 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.support.annotation.*;
 import android.text.TextUtils;
+import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.bytedance.scene.Scene;
-import com.bytedance.scene.State;
+import com.bytedance.scene.*;
 import com.bytedance.scene.animation.AnimationOrAnimator;
 import com.bytedance.scene.animation.AnimationOrAnimatorFactory;
 import com.bytedance.scene.interfaces.ChildSceneLifecycleCallbacks;
+import com.bytedance.scene.utlity.Experimental;
+import com.bytedance.scene.utlity.NonNullPair;
+import com.bytedance.scene.utlity.SceneInstanceUtility;
+import com.bytedance.scene.utlity.ThreadUtility;
 import com.bytedance.scene.utlity.*;
 
 import java.util.ArrayList;
@@ -95,11 +99,14 @@ import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
  * }
  * ```
  */
-public abstract class GroupScene extends Scene {
+public abstract class GroupScene extends Scene implements SceneParent {
+    private static final String KEY_GROUP_SCENE_SUPPORT_RESTORE_ARGUMENT = "bd-scene-group:support_restore";
+
     @NonNull
     private final GroupSceneManager mGroupSceneManager;
     @NonNull
     private final List<NonNullPair<ChildSceneLifecycleCallbacks, Boolean>> mLifecycleCallbacks = new ArrayList<>();
+    private boolean mSupportRestore = true;
 
     public GroupScene() {
         this.mGroupSceneManager = new GroupSceneManager(this);
@@ -111,6 +118,7 @@ public abstract class GroupScene extends Scene {
     }
 
     @NonNull
+    @Override
     public final List<Scene> getSceneList() {
         return this.mGroupSceneManager.getChildSceneList();
     }
@@ -189,9 +197,14 @@ public abstract class GroupScene extends Scene {
         mGroupSceneManager.add(viewId, scene, tag, animationOrAnimatorFactory);
     }
 
-    private boolean isSupportRestore() {
-        return getNavigationScene() != null
-                && getNavigationScene().isSupportRestore();
+    @Override
+    public final void disableSupportRestore() {
+        this.mSupportRestore = false;
+    }
+
+    @Override
+    public final boolean isSupportRestore() {
+        return this.mSupportRestore;
     }
 
     @Nullable
@@ -281,12 +294,20 @@ public abstract class GroupScene extends Scene {
         return this.mGroupSceneManager.findByScene(scene) != null;
     }
 
-    public final boolean isShow(@NonNull Scene scene) {
+    public final boolean isShowing(@NonNull Scene scene) {
         GroupRecord record = this.mGroupSceneManager.findByScene(scene);
         if (record == null) {
             return false;
         }
         return !record.isHidden;
+    }
+
+    /**
+     * use {@link #isShowing(Scene)} instead
+     */
+    @Deprecated
+    public final boolean isShow(@NonNull Scene scene) {
+        return isShowing(scene);
     }
 
     @NonNull
@@ -305,22 +326,14 @@ public abstract class GroupScene extends Scene {
                 if (tmp == getView()) {
                     break;
                 }
-                GroupRecord record = mGroupSceneManager.findByView(tmp);
-                if (record != null) {
-                    throw new IllegalArgumentException(String.format("cant add Scene to child Scene %s view hierarchy ", record.scene.toString()));
+                Scene scene = (Scene) tmp.getTag(R.id.bytedance_scene_view_scene_tag);
+                if (scene != null) {
+                    throw new IllegalArgumentException(String.format("cant add Scene to child Scene %s view hierarchy ", scene.toString()));
                 }
                 tmp = (ViewGroup) tmp.getParent();
             }
         }
         return viewGroup;
-    }
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (savedInstanceState != null) {
-            this.mGroupSceneManager.restoreFromBundle(requireActivity(), savedInstanceState);
-        }
     }
 
     @Override
@@ -331,11 +344,35 @@ public abstract class GroupScene extends Scene {
     @Override
     public final void dispatchAttachScene(@Nullable Scene parentScene) {
         super.dispatchAttachScene(parentScene);
+        if (parentScene == null) {
+            //ignore
+        } else if (parentScene instanceof SceneParent) {
+            SceneParent sceneParent = (SceneParent) parentScene;
+            if (!sceneParent.isSupportRestore()) {
+                disableSupportRestore();
+            }
+        } else {
+            throw new SceneInternalException("unknown parent Scene type " + parentScene.getClass());
+        }
     }
 
     @Override
     public final void dispatchCreate(@Nullable Bundle savedInstanceState) {
         super.dispatchCreate(savedInstanceState);
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (savedInstanceState != null) {
+            boolean supportRestore = savedInstanceState.getBoolean(KEY_GROUP_SCENE_SUPPORT_RESTORE_ARGUMENT, isSupportRestore());
+            if (!supportRestore) {
+                disableSupportRestore();
+            }
+            if (isSupportRestore()) {
+                this.mGroupSceneManager.restoreFromBundle(requireActivity(), savedInstanceState);
+            }
+        }
     }
 
     /**
@@ -366,6 +403,7 @@ public abstract class GroupScene extends Scene {
             throw new IllegalStateException("ScenePlaceHolderView can only be used when support restore is disabled");
         }
 
+        SparseArray<ViewGroup> parentIdViewMap = new SparseArray<>();
         for (int i = 0, N = holderViewList.size(); i < N; i++) {
             ScenePlaceHolderView holderView = holderViewList.get(i);
             ViewGroup parent = (ViewGroup) holderView.getParent();
@@ -373,11 +411,25 @@ public abstract class GroupScene extends Scene {
             if (parentId == View.NO_ID) {
                 throw new IllegalArgumentException("ScenePlaceHolderView parent id can't be View.NO_ID");
             }
+            if (parentIdViewMap.get(parentId) == null) {
+                parentIdViewMap.put(parentId, parent);
+            } else if (parentIdViewMap.get(parentId) != parent) {
+                throw new IllegalArgumentException("ScenePlaceHolderView' parent ViewGroup should have unique id," +
+                        " the duplicate id is " + Utility.getIdName(requireSceneContext(), parentId));
+            }
             ViewGroup.LayoutParams layoutParams = holderView.getLayoutParams();
             String name = holderView.getSceneName();
             String tag = holderView.getSceneTag();
+            Bundle arguments = holderView.getArguments();
 
-            Scene scene = SceneInstanceUtility.getInstanceFromClassName(requireSceneContext(), name, holderView.getArguments());
+            Scene scene = null;
+            SceneComponentFactory componentFactory = holderView.getSceneComponentFactory();
+            if (componentFactory != null) {
+                scene = componentFactory.instantiateScene(requireSceneContext().getClassLoader(), name, arguments);
+            }
+            if (scene == null) {
+                scene = SceneInstanceUtility.getInstanceFromClassName(requireSceneContext(), name, arguments);
+            }
             int index = parent.indexOfChild(holderView);
             parent.removeView(holderView);
             if (holderView.getVisibility() == View.VISIBLE) {
@@ -394,9 +446,9 @@ public abstract class GroupScene extends Scene {
             if (holderView.getId() != View.NO_ID) {
                 if (sceneView.getId() == View.NO_ID) {
                     sceneView.setId(holderView.getId());
-                } else {
+                } else if (holderView.getId() != sceneView.getId()) {
                     String holderViewIdName = Utility.getIdName(requireSceneContext(), holderView.getId());
-                    String sceneViewIdName = Utility.getIdName(requireSceneContext(), holderView.getId());
+                    String sceneViewIdName = Utility.getIdName(requireSceneContext(), sceneView.getId());
                     throw new IllegalStateException(String.format("ScenePlaceHolderView's id %s is different from Scene root view's id %s"
                             , holderViewIdName, sceneViewIdName));
                 }
@@ -460,7 +512,14 @@ public abstract class GroupScene extends Scene {
     @CallSuper
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        this.mGroupSceneManager.saveToBundle(outState);
+        if (outState.containsKey(KEY_GROUP_SCENE_SUPPORT_RESTORE_ARGUMENT)) {
+            throw new IllegalArgumentException("outState already contains key " + KEY_GROUP_SCENE_SUPPORT_RESTORE_ARGUMENT);
+        } else {
+            outState.putBoolean(KEY_GROUP_SCENE_SUPPORT_RESTORE_ARGUMENT, isSupportRestore());
+            if (isSupportRestore()) {
+                this.mGroupSceneManager.saveToBundle(outState);
+            }
+        }
     }
 
     /**
@@ -612,6 +671,24 @@ public abstract class GroupScene extends Scene {
         }
 
         super.dispatchOnSceneCreated(scene, savedInstanceState, directChild);
+    }
+
+    /**
+     * @hide
+     */
+    @RestrictTo(LIBRARY_GROUP)
+    @Override
+    public final void dispatchOnSceneViewCreated(@NonNull Scene scene, @Nullable Bundle savedInstanceState, boolean directChild) {
+        if (scene != this) {
+            List<NonNullPair<ChildSceneLifecycleCallbacks, Boolean>> list = new ArrayList<>(mLifecycleCallbacks);
+            for (NonNullPair<ChildSceneLifecycleCallbacks, Boolean> pair : list) {
+                if (directChild || pair.second) {
+                    pair.first.onSceneViewCreated(scene, savedInstanceState);
+                }
+            }
+        }
+
+        super.dispatchOnSceneViewCreated(scene, savedInstanceState, directChild);
     }
 
     /**

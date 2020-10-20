@@ -34,6 +34,7 @@ public class ChildSceneLifecycleCallbacksTests {
     @Test
     public void testNavigationSceneNotRecursiveExcludingOnSceneSaveInstanceState() {
         final AtomicBoolean isCreatedCalled = new AtomicBoolean(false);
+        final AtomicBoolean isViewCreatedCalled = new AtomicBoolean(false);
         final AtomicBoolean isActivityCreatedCalled = new AtomicBoolean(false);
         final AtomicBoolean isStartedCalled = new AtomicBoolean(false);
         final AtomicBoolean isResumedCalled = new AtomicBoolean(false);
@@ -49,6 +50,15 @@ public class ChildSceneLifecycleCallbacksTests {
                     throw new IllegalStateException("crash");
                 }
                 assertNull(scene.getView());
+                assertSame(State.NONE, scene.getState());
+            }
+
+            @Override
+            public void onSceneViewCreated(@NonNull Scene scene, @Nullable Bundle savedInstanceState) {
+                if (!isViewCreatedCalled.compareAndSet(false, true)) {
+                    throw new IllegalStateException("crash");
+                }
+                assertNotNull(scene.getView());
                 assertSame(State.NONE, scene.getState());
             }
 
@@ -131,13 +141,6 @@ public class ChildSceneLifecycleCallbacksTests {
         navigationScene.setArguments(options.toBundle());
         navigationScene.registerChildSceneLifecycleCallbacks(callbacks, false);
 
-        NavigationScene.NavigationSceneHost navigationSceneHost = new NavigationScene.NavigationSceneHost() {
-            @Override
-            public boolean isSupportRestore() {
-                return false;
-            }
-        };
-
         Scope.RootScopeFactory rootScopeFactory = new Scope.RootScopeFactory() {
             @Override
             public Scope getRootScope() {
@@ -156,11 +159,12 @@ public class ChildSceneLifecycleCallbacksTests {
         };
 
         navigationScene.setDefaultNavigationAnimationExecutor(null);
+        navigationScene.setRootSceneComponentFactory(sceneComponentFactory);
 
-        SceneLifecycleManager lifecycleManager = new SceneLifecycleManager();
+        SceneLifecycleManager<NavigationScene> lifecycleManager = new SceneLifecycleManager<>();
         lifecycleManager.onActivityCreated(testActivity, testActivity.mFrameLayout,
-                navigationScene, navigationSceneHost, rootScopeFactory,
-                sceneComponentFactory, null);
+                navigationScene, rootScopeFactory,
+                false, null);
         lifecycleManager.onStart();
         lifecycleManager.onResume();
         lifecycleManager.onPause();
@@ -168,6 +172,7 @@ public class ChildSceneLifecycleCallbacksTests {
         lifecycleManager.onDestroyView();
 
         assertTrue(isCreatedCalled.get());
+        assertTrue(isViewCreatedCalled.get());
         assertTrue(isActivityCreatedCalled.get());
         assertTrue(isStartedCalled.get());
         assertTrue(isResumedCalled.get());
@@ -180,6 +185,7 @@ public class ChildSceneLifecycleCallbacksTests {
     @Test
     public void testGroupSceneNotRecursiveExcludingOnSceneSaveInstanceState() {
         final AtomicBoolean isCreatedCalled = new AtomicBoolean(false);
+        final AtomicBoolean isViewCreatedCalled = new AtomicBoolean(false);
         final AtomicBoolean isActivityCreatedCalled = new AtomicBoolean(false);
         final AtomicBoolean isStartedCalled = new AtomicBoolean(false);
         final AtomicBoolean isResumedCalled = new AtomicBoolean(false);
@@ -195,6 +201,15 @@ public class ChildSceneLifecycleCallbacksTests {
                     throw new IllegalStateException("crash");
                 }
                 assertNull(scene.getView());
+                assertSame(State.NONE, scene.getState());
+            }
+
+            @Override
+            public void onSceneViewCreated(@NonNull Scene scene, @Nullable Bundle savedInstanceState) {
+                if (!isViewCreatedCalled.compareAndSet(false, true)) {
+                    throw new IllegalStateException("crash");
+                }
+                assertNotNull(scene.getView());
                 assertSame(State.NONE, scene.getState());
             }
 
@@ -277,7 +292,7 @@ public class ChildSceneLifecycleCallbacksTests {
             }
         };
 
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
         rootScene.registerChildSceneLifecycleCallbacks(callbacks, false);
 
         SceneLifecycleManager lifecycleManager = pair.first;
@@ -294,6 +309,7 @@ public class ChildSceneLifecycleCallbacksTests {
 
         rootScene.add(id, scene, "TAG");
         assertTrue(isCreatedCalled.get());
+        assertTrue(isViewCreatedCalled.get());
         assertTrue(isActivityCreatedCalled.get());
         assertTrue(isStartedCalled.get());
         assertTrue(isResumedCalled.get());
@@ -308,6 +324,7 @@ public class ChildSceneLifecycleCallbacksTests {
     @Test
     public void testGroupSceneRecursiveExcludingOnSceneSaveInstanceState() {
         final AtomicBoolean isCreatedCalled = new AtomicBoolean(false);
+        final AtomicBoolean isViewCreatedCalled = new AtomicBoolean(false);
         final AtomicBoolean isActivityCreatedCalled = new AtomicBoolean(false);
         final AtomicBoolean isStartedCalled = new AtomicBoolean(false);
         final AtomicBoolean isResumedCalled = new AtomicBoolean(false);
@@ -334,6 +351,18 @@ public class ChildSceneLifecycleCallbacksTests {
                     throw new IllegalStateException("crash");
                 }
                 assertNull(scene.getView());
+                assertSame(State.NONE, scene.getState());
+            }
+
+            @Override
+            public void onSceneViewCreated(@NonNull Scene scene, @Nullable Bundle savedInstanceState) {
+                if (scene != childScene) {
+                    return;
+                }
+                if (!isViewCreatedCalled.compareAndSet(false, true)) {
+                    throw new IllegalStateException("crash");
+                }
+                assertNotNull(scene.getView());
                 assertSame(State.NONE, scene.getState());
             }
 
@@ -437,7 +466,7 @@ public class ChildSceneLifecycleCallbacksTests {
             }
         };
 
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(rootScene);
         rootScene.registerChildSceneLifecycleCallbacks(callbacks, true);
 
         SceneLifecycleManager lifecycleManager = pair.first;
@@ -462,6 +491,7 @@ public class ChildSceneLifecycleCallbacksTests {
 
         secondRootScene.add(secondRootId, childScene, "CHILD");
         assertTrue(isCreatedCalled.get());
+        assertTrue(isViewCreatedCalled.get());
         assertTrue(isActivityCreatedCalled.get());
         assertTrue(isStartedCalled.get());
         assertTrue(isResumedCalled.get());

@@ -15,6 +15,7 @@ import com.bytedance.scene.group.GroupScene;
 import com.bytedance.scene.navigation.NavigationScene;
 import com.bytedance.scene.utlity.ViewIdGenerator;
 
+import com.bytedance.scene.utlity.ViewUtility;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -30,7 +31,7 @@ public class GroupSceneLifecycleTests {
     @Test
     public void testAdd() {
         TestEmptyScene testScene = new TestEmptyScene();
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
 
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         NavigationScene navigationScene = pair.second;
@@ -86,7 +87,7 @@ public class GroupSceneLifecycleTests {
     @Test
     public void testRemove() {
         TestEmptyScene testScene = new TestEmptyScene();
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
 
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         NavigationScene navigationScene = pair.second;
@@ -116,7 +117,7 @@ public class GroupSceneLifecycleTests {
     @Test
     public void testShowAndHide() {
         TestEmptyScene testScene = new TestEmptyScene();
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
 
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         NavigationScene navigationScene = pair.second;
@@ -199,7 +200,7 @@ public class GroupSceneLifecycleTests {
     @Test
     public void testShowAndHide2() {
         TestEmptyScene testScene = new TestEmptyScene();
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(testScene);
 
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         NavigationScene navigationScene = pair.second;
@@ -251,7 +252,7 @@ public class GroupSceneLifecycleTests {
     @Test
     public void testGroupSceneLifecycle() {
         TestScene groupScene = new TestScene();
-        Pair<SceneLifecycleManager, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(groupScene);
+        Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(groupScene);
 
         SceneLifecycleManager sceneLifecycleManager = pair.first;
         NavigationScene navigationScene = pair.second;
@@ -578,6 +579,7 @@ public class GroupSceneLifecycleTests {
                 assertFalse(scene.isVisible());
                 assertNotNull(scene.getView());
                 assertSame(scene.getView().getContext().getSystemService(Scene.SCENE_SERVICE), scene);
+                assertEquals(ViewUtility.findSceneByView(scene.getView()), scene);
                 assertNotNull(scene.getParentScene());
                 assertNotNull(scene.getNavigationScene());
                 assertNotNull(scene.getActivity());
@@ -595,6 +597,7 @@ public class GroupSceneLifecycleTests {
                 assertTrue(scene.isVisible());
                 assertNotNull(scene.getView());
                 assertSame(scene.getView().getContext().getSystemService(Scene.SCENE_SERVICE), scene);
+                assertEquals(ViewUtility.findSceneByView(scene.getView()), scene);
                 assertNotNull(scene.getParentScene());
                 assertNotNull(scene.getNavigationScene());
                 assertNotNull(scene.getActivity());
@@ -612,6 +615,7 @@ public class GroupSceneLifecycleTests {
                 assertTrue(scene.isVisible());
                 assertNotNull(scene.getView());
                 assertSame(scene.getView().getContext().getSystemService(Scene.SCENE_SERVICE), scene);
+                assertEquals(ViewUtility.findSceneByView(scene.getView()), scene);
                 assertNotNull(scene.getParentScene());
                 assertNotNull(scene.getNavigationScene());
                 assertNotNull(scene.getActivity());

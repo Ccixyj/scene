@@ -17,23 +17,19 @@ package com.bytedance.scene;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Application;
 import android.arch.lifecycle.*;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.res.Resources;
 import android.os.*;
 import android.support.annotation.*;
 import android.support.v4.view.ViewCompat;
 import android.util.Log;
 import android.util.SparseArray;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.Window;
+import android.view.*;
 
 import com.bytedance.scene.navigation.NavigationScene;
 import com.bytedance.scene.parcel.ParcelConstants;
+import com.bytedance.scene.utlity.ViewRefUtility;
 import com.bytedance.scene.utlity.SceneInternalException;
 import com.bytedance.scene.utlity.Utility;
 import com.bytedance.scene.view.SceneContextThemeWrapper;
@@ -112,6 +108,10 @@ import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
  * ```
  */
 public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
+    /**
+     * use ViewUtility.findSceneByView(View) instead
+     */
+    @Deprecated
     public static final String SCENE_SERVICE = "scene";
     private static final String TAG = "Scene";
 
@@ -326,7 +326,7 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
                     + "Scene is attached to the Activity.");
         }
 
-        return this.mActivity.getLayoutInflater().cloneInContext(requireSceneContext());
+        return new SceneLayoutInflater(requireActivity(), this);
     }
 
     /**
@@ -362,6 +362,8 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
             }
         }
 
+        view.setTag(R.id.bytedance_scene_view_scene_tag, this);
+        view.setSaveFromParentEnabled(false);
         mView = view;
         mCalled = false;
         onViewCreated(mView, savedInstanceState);
@@ -369,6 +371,7 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
             throw new SuperNotCalledException("Scene " + this
                     + " did not call through to super.onViewCreated()");
         }
+        dispatchOnSceneViewCreated(this, savedInstanceState, false);
         setState(State.VIEW_CREATED);
     }
 
@@ -477,6 +480,13 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
     /** @hide */
     @RestrictTo(LIBRARY_GROUP)
     public void dispatchDestroyView() {
+        //make sure the View which is in onTouchEvent process will receive MotionEvent.CANCEL before Scene destroyed,
+        //otherwise android framework will send it MotionEvent.CANCEL when it is removed from parent ViewGroup,
+        //but at that moment, Scene is already be destroyed
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            ViewRefUtility.cancelViewTouchTargetFromParent(this.mView);
+        }
+
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY);
         setState(State.NONE);
         mCalled = false;
@@ -1054,6 +1064,9 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
 
     /**
      * Use another theme instead of inherit from Activity theme
+     * <p>
+     * This method will modify onCreateView inflated view context, View.getContext() will return ContextWrapper instead
+     * of Activity
      */
     public final void setTheme(@StyleRes int resId) {
         if (getView() != null) {
@@ -1117,6 +1130,15 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
         Scene parentScene = getParentScene();
         if (parentScene != null) {
             parentScene.dispatchOnSceneCreated(scene, savedInstanceState, scene == this);
+        }
+    }
+
+    /** @hide */
+    @RestrictTo(LIBRARY_GROUP)
+    public void dispatchOnSceneViewCreated(@NonNull Scene scene, @Nullable Bundle savedInstanceState, boolean directChild) {
+        Scene parentScene = getParentScene();
+        if (parentScene != null) {
+            parentScene.dispatchOnSceneViewCreated(scene, savedInstanceState, scene == this);
         }
     }
 
@@ -1214,5 +1236,10 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
         StringBuilder sb = new StringBuilder(128);
         Utility.buildShortClassTag(this, sb);
         return sb.toString();
+    }
+
+    @NonNull
+    public final String getDebugSceneHierarchy() {
+        return Utility.getViewHierarchy(this);
     }
 }
