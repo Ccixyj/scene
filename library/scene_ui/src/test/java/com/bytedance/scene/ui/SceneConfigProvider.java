@@ -1,7 +1,9 @@
 package com.bytedance.scene.ui;
 
 import android.os.Build;
+
 import com.google.auto.service.AutoService;
+
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 import org.robolectric.pluginapi.config.GlobalConfigProvider;

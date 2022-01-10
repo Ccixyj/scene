@@ -14,6 +14,7 @@ import androidx.core.util.Pair;
 import androidx.lifecycle.LifecycleObserver;
 import com.bytedance.scene.group.GroupScene;
 import com.bytedance.scene.navigation.NavigationScene;
+import com.bytedance.scene.navigation.NavigationSceneGetter;
 import com.bytedance.scene.utlity.ViewIdGenerator;
 import com.bytedance.scene.view.SceneContextThemeWrapper;
 import org.junit.Test;
@@ -131,8 +132,8 @@ public class SceneTests {
         };
         Pair<SceneLifecycleManager<NavigationScene>, NavigationScene> pair = NavigationSourceUtility.createFromInitSceneLifecycleManager(scene);
 
-        assertNull(scene.getNavigationScene().getParentScene());
-        scene.getNavigationScene().requireParentScene();
+        assertNull(NavigationSceneGetter.getNavigationScene(scene).getParentScene());
+        NavigationSceneGetter.getNavigationScene(scene).requireParentScene();
     }
 
     @Test(expected = IllegalStateException.class)

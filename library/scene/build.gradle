@@ -23,6 +23,7 @@ dependencies {
     testImplementation JUNIT
     testAnnotationProcessor AUTO_SERVICE
     testCompileOnly AUTO_SERVICE
+    testApi project( ':library:scene_navigation')
 }
 
 tasks.withType(Test) {

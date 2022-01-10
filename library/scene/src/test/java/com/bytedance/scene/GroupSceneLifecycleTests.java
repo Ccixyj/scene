@@ -13,6 +13,7 @@ import androidx.core.util.Pair;
 import androidx.lifecycle.Lifecycle;
 import com.bytedance.scene.group.GroupScene;
 import com.bytedance.scene.navigation.NavigationScene;
+import com.bytedance.scene.navigation.NavigationSceneGetter;
 import com.bytedance.scene.utlity.ViewIdGenerator;
 
 import com.bytedance.scene.utlity.ViewUtility;
@@ -268,7 +269,7 @@ public class GroupSceneLifecycleTests {
         assertTrue(groupScene.isAdded(childScene));
         assertEquals(childScene, groupScene.findSceneByTag("childScene"));
         assertEquals(childScene.getParentScene(), groupScene);
-        assertEquals(childScene.getNavigationScene(), navigationScene);
+        assertEquals(NavigationSceneGetter.getNavigationScene(childScene), navigationScene);
         assertEquals(childScene.getState(), State.RESUMED);
         assertEquals(childScene.getLifecycle().getCurrentState(), groupScene.getLifecycle().getCurrentState());
 
@@ -545,7 +546,7 @@ public class GroupSceneLifecycleTests {
                 assertFalse(scene.isVisible());
                 assertNull(scene.getView());
                 assertNull(scene.getParentScene());
-                assertNull(scene.getNavigationScene());
+                assertNull(NavigationSceneGetter.getNavigationScene(scene));
                 assertNull(scene.getActivity());
                 assertNull(scene.getApplicationContext());
                 assertNotNull(scene.getLifecycle());
@@ -563,7 +564,7 @@ public class GroupSceneLifecycleTests {
                 assertSame(scene.getView().getContext().getSystemService(Scene.SCENE_SERVICE), scene);
                 assertNotNull(scene.getActivity());
                 assertNotNull(scene.getParentScene());
-                assertNotNull(scene.getNavigationScene());
+                assertNotNull(NavigationSceneGetter.getNavigationScene(scene));
                 assertNotNull(scene.getActivity());
                 assertNotNull(scene.getApplicationContext());
                 assertNotNull(scene.getSceneContext());
@@ -581,7 +582,7 @@ public class GroupSceneLifecycleTests {
                 assertSame(scene.getView().getContext().getSystemService(Scene.SCENE_SERVICE), scene);
                 assertEquals(ViewUtility.findSceneByView(scene.getView()), scene);
                 assertNotNull(scene.getParentScene());
-                assertNotNull(scene.getNavigationScene());
+                assertNotNull(NavigationSceneGetter.getNavigationScene(scene));
                 assertNotNull(scene.getActivity());
                 assertNotNull(scene.getApplicationContext());
                 assertNotNull(scene.getSceneContext());
@@ -599,7 +600,7 @@ public class GroupSceneLifecycleTests {
                 assertSame(scene.getView().getContext().getSystemService(Scene.SCENE_SERVICE), scene);
                 assertEquals(ViewUtility.findSceneByView(scene.getView()), scene);
                 assertNotNull(scene.getParentScene());
-                assertNotNull(scene.getNavigationScene());
+                assertNotNull(NavigationSceneGetter.getNavigationScene(scene));
                 assertNotNull(scene.getActivity());
                 assertNotNull(scene.getApplicationContext());
                 assertNotNull(scene.getSceneContext());
@@ -617,7 +618,7 @@ public class GroupSceneLifecycleTests {
                 assertSame(scene.getView().getContext().getSystemService(Scene.SCENE_SERVICE), scene);
                 assertEquals(ViewUtility.findSceneByView(scene.getView()), scene);
                 assertNotNull(scene.getParentScene());
-                assertNotNull(scene.getNavigationScene());
+                assertNotNull(NavigationSceneGetter.getNavigationScene(scene));
                 assertNotNull(scene.getActivity());
                 assertNotNull(scene.getApplicationContext());
                 assertNotNull(scene.getSceneContext());

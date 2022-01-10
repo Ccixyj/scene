@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import androidx.core.util.Pair;
 import androidx.lifecycle.Lifecycle;
 import com.bytedance.scene.navigation.NavigationScene;
+import com.bytedance.scene.navigation.NavigationSceneGetter;
 import com.bytedance.scene.utlity.ViewUtility;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,7 +29,7 @@ public class SceneLifecycleTests {
         assertNull(testScene.getView());
         assertNull(testScene.getActivity());
         assertNull(testScene.getParentScene());
-        assertNull(testScene.getNavigationScene());
+        assertNull(NavigationSceneGetter.getNavigationScene(testScene));
         assertNull(testScene.getApplicationContext());
         assertEquals(testScene.getLifecycle().getCurrentState(), Lifecycle.State.INITIALIZED);
         assertEquals(testScene.getState(), State.NONE);
@@ -46,7 +47,7 @@ public class SceneLifecycleTests {
         assertNotNull(testScene.getResources());
         assertNotNull(testScene.getLayoutInflater());
         assertNotNull(testScene.getParentScene());
-        assertNotNull(testScene.getNavigationScene());
+        assertNotNull(NavigationSceneGetter.getNavigationScene(testScene));
         assertEquals(testScene.getLifecycle().getCurrentState(), Lifecycle.State.CREATED);
         assertEquals(testScene.getState(), State.ACTIVITY_CREATED);
         assertTrue(testScene.getStateHistory().contains(State.ACTIVITY_CREATED.getName()));
@@ -57,7 +58,7 @@ public class SceneLifecycleTests {
 
         testScene.requireView();
         testScene.requireParentScene();
-        testScene.requireNavigationScene();
+        NavigationSceneGetter.requireNavigationScene(testScene);
         testScene.requireActivity();
         testScene.requireSceneContext();
         testScene.requireApplicationContext();
@@ -93,7 +94,7 @@ public class SceneLifecycleTests {
         assertNull(testScene.getActivity());
         assertNull(testScene.getApplicationContext());
         assertNull(testScene.getParentScene());
-        assertNull(testScene.getNavigationScene());
+        assertNull(NavigationSceneGetter.getNavigationScene(testScene));
         assertEquals(testScene.getLifecycle().getCurrentState(), Lifecycle.State.DESTROYED);
         assertEquals(testScene.getState(), State.NONE);
         assertFalse(testScene.isVisible());

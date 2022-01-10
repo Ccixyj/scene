@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import com.bytedance.scene.exceptions.IllegalLifecycleException;
 import com.bytedance.scene.group.GroupScene;
 import com.bytedance.scene.navigation.NavigationScene;
+import com.bytedance.scene.navigation.NavigationSceneGetter;
 import com.bytedance.scene.utlity.ViewIdGenerator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,9 +61,9 @@ public class TrackSceneStateChangeTests {
             @Override
             public void onActivityCreated(@Nullable Bundle savedInstanceState) {
                 super.onActivityCreated(savedInstanceState);
-                int currentSceneCount = getNavigationScene().getSceneList().size();
-                getNavigationScene().push(PushChildScene.class);
-                assertEquals(currentSceneCount, getNavigationScene().getSceneList().size());//navigation stack should remain same
+                int currentSceneCount = NavigationSceneGetter.requireNavigationScene(this).getSceneList().size();
+                NavigationSceneGetter.requireNavigationScene(this).push(PushChildScene.class);
+                assertEquals(currentSceneCount, NavigationSceneGetter.requireNavigationScene(this).getSceneList().size());//navigation stack should remain same
             }
         };
         NavigationScene navigationScene = NavigationSourceUtility.createFromSceneLifecycleManager(testScene);
@@ -85,9 +86,9 @@ public class TrackSceneStateChangeTests {
             @Override
             public void onActivityCreated(@Nullable Bundle savedInstanceState) {
                 super.onActivityCreated(savedInstanceState);
-                int currentSceneCount = getNavigationScene().getSceneList().size();
-                getNavigationScene().push(PushChildScene.class);
-                assertEquals(currentSceneCount, getNavigationScene().getSceneList().size());//navigation stack should remain same
+                int currentSceneCount = NavigationSceneGetter.requireNavigationScene(this).getSceneList().size();
+                NavigationSceneGetter.requireNavigationScene(this).push(PushChildScene.class);
+                assertEquals(currentSceneCount, NavigationSceneGetter.requireNavigationScene(this).getSceneList().size());//navigation stack should remain same
             }
         };
         NavigationScene navigationScene = NavigationSourceUtility.createFromSceneLifecycleManager(testScene);
@@ -111,9 +112,9 @@ public class TrackSceneStateChangeTests {
             @Override
             public void onActivityCreated(@Nullable Bundle savedInstanceState) {
                 super.onActivityCreated(savedInstanceState);
-                getNavigationScene().push(PushChildScene.class);
-                getNavigationScene().push(PushChildScene2.class);
-                assertEquals(1, getNavigationScene().getSceneList().size());//navigation stack should remain same
+                NavigationSceneGetter.requireNavigationScene(this).push(PushChildScene.class);
+                NavigationSceneGetter.requireNavigationScene(this).push(PushChildScene2.class);
+                assertEquals(1, NavigationSceneGetter.requireNavigationScene(this).getSceneList().size());//navigation stack should remain same
             }
         });
         shadowOf(getMainLooper()).idle();//execute Handler posted task
@@ -191,9 +192,9 @@ public class TrackSceneStateChangeTests {
         @Override
         public void onActivityCreated(@Nullable Bundle savedInstanceState) {
             super.onActivityCreated(savedInstanceState);
-            int currentSceneCount = getNavigationScene().getSceneList().size();
-            getNavigationScene().push(PushChildScene.class);
-            assertEquals(currentSceneCount, getNavigationScene().getSceneList().size());//navigation stack should remain same
+            int currentSceneCount = NavigationSceneGetter.requireNavigationScene(this).getSceneList().size();
+            NavigationSceneGetter.requireNavigationScene(this).push(PushChildScene.class);
+            assertEquals(currentSceneCount, NavigationSceneGetter.requireNavigationScene(this).getSceneList().size());//navigation stack should remain same
         }
     }
 
