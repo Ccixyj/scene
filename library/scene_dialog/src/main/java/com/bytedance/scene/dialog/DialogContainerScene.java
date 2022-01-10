@@ -17,28 +17,31 @@ package com.bytedance.scene.dialog;
 
 import android.app.Activity;
 import android.app.Dialog;
-import android.arch.lifecycle.Lifecycle;
 import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.*;
 import android.view.*;
+import androidx.annotation.*;
+import androidx.lifecycle.Lifecycle;
+import com.bytedance.scene.navigation.NavigationSceneGetter;
 import com.bytedance.scene.Scene;
 import com.bytedance.scene.animation.animatorexecutor.NoAnimationExecutor;
 import com.bytedance.scene.interfaces.PushOptions;
 import com.bytedance.scene.navigation.NavigationScene;
+import com.bytedance.scene.navigation.SceneTranslucent;
 import com.bytedance.scene.utlity.Experimental;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
+import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
 
 /**
  * replacement for DialogFragment
  */
 @Experimental
-public class DialogContainerScene extends Scene implements DialogInterface.OnCancelListener, DialogInterface.OnDismissListener {
+public class DialogContainerScene extends Scene implements DialogInterface.OnCancelListener, DialogInterface.OnDismissListener
+        , SceneTranslucent {
 
     /**
      * @hide
@@ -133,13 +136,13 @@ public class DialogContainerScene extends Scene implements DialogInterface.OnCan
             return;
         }
 
-        NavigationScene navigationScene = hostScene.getNavigationScene();
+        NavigationScene navigationScene = NavigationSceneGetter.getNavigationScene(hostScene);
         if (navigationScene == null) {
             return;
         }
         mDismissed = false;
         mShownByMe = true;
-        navigationScene.push(this, new PushOptions.Builder().setTranslucent(true)
+        navigationScene.push(this, new PushOptions.Builder()
                 .setAnimation(new NoAnimationExecutor()).build());
     }
 
@@ -160,7 +163,7 @@ public class DialogContainerScene extends Scene implements DialogInterface.OnCan
             mDialog.dismiss();
         }
         mViewDestroyed = true;
-        NavigationScene navigationScene = getNavigationScene();
+        NavigationScene navigationScene = NavigationSceneGetter.getNavigationScene(this);
         if (navigationScene != null) {
             navigationScene.remove(this);
         }

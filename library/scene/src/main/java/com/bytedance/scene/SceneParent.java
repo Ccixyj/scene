@@ -15,7 +15,9 @@
  */
 package com.bytedance.scene;
 
-import android.support.annotation.NonNull;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.util.List;
 
@@ -26,4 +28,7 @@ public interface SceneParent {
     void disableSupportRestore();
 
     boolean isSupportRestore();
+
+    @Nullable
+    String getSceneDebugInfo(@NonNull Scene scene);
 }

@@ -15,17 +15,18 @@
  */
 package com.bytedance.scene.group;
 
-import android.arch.lifecycle.Lifecycle;
-import android.arch.lifecycle.LifecycleObserver;
-import android.arch.lifecycle.LifecycleOwner;
-import android.arch.lifecycle.LifecycleRegistry;
-import android.arch.lifecycle.OnLifecycleEvent;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.RestrictTo;
 
-import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LifecycleRegistry;
+import androidx.lifecycle.OnLifecycleEvent;
+
+import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
 
 /**
  * Created by JiangQi on 8/23/18.
@@ -120,7 +121,7 @@ public abstract class UserVisibleHintGroupScene extends GroupScene {
                 }
             }
 
-            @OnLifecycleEvent(Lifecycle.Event.ON_START)
+            @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
             void onDestroy() {
                 mUserVisibleLifecycleOwner.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY);
             }
@@ -134,6 +135,11 @@ public abstract class UserVisibleHintGroupScene extends GroupScene {
     @NonNull
     public Lifecycle getUserVisibleHintLifecycle() {
         return this.mUserVisibleLifecycleOwner.getLifecycle();
+    }
+
+    @NonNull
+    public LifecycleOwner getUserVisibleHintLifecycleOwner() {
+        return this.mUserVisibleLifecycleOwner;
     }
 
     @Override

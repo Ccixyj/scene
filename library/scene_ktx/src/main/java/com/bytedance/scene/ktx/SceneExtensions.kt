@@ -15,17 +15,17 @@
  */
 package com.bytedance.scene.ktx
 
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleObserver
-import android.arch.lifecycle.OnLifecycleEvent
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.support.annotation.RequiresApi
-import android.support.v4.app.FragmentActivity
+import androidx.annotation.RequiresApi
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.OnLifecycleEvent
 import com.bytedance.scene.ActivityCompatibilityUtility
 import com.bytedance.scene.Scene
 import com.bytedance.scene.interfaces.ActivityResultCallback

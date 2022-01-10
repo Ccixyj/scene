@@ -18,7 +18,7 @@ package com.bytedance.scene.group;
 import android.app.Activity;
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.support.annotation.*;
+import androidx.annotation.*;
 import android.text.TextUtils;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
@@ -38,8 +38,8 @@ import com.bytedance.scene.utlity.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.support.annotation.RestrictTo.Scope.LIBRARY;
-import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
+import static androidx.annotation.RestrictTo.Scope.LIBRARY;
+import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
 
 /**
  * Created by JiangQi on 8/1/18.
@@ -48,30 +48,30 @@ import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
  *
  * When entering:
  *
- * 1. Parent: onAttach -> onCreate -> onCreateView -> onViewCreated
- *    (synchronize the state of child Scene)
- * 2. Child: onAttach -> onCreate -> onCreateView -> onViewCreated
- * 3. Parent: onActivityCreated
- *    (synchronize the state of child Scene)
- * 4. Child: onActivityCreated
- * 5. Parent: onStart
- *    (synchronize the state of child Scene)
- * 6. Child: onStart
- * 7. Parent: onResume
- *    (synchronize the state of child Scene)
- * 8. Child: onResume
+ * +----------------------+     +--------------------+     +--------------------------+     +-------------------------+     +----------------+     +---------------+     +-----------------+     +----------------+
+ * | Parent onViewCreated | --> |       sync_1       | --> | Parent onActivityCreated | --> |         sync_2          | --> | Parent onStart | --> |    sync_3     | --> | Parent onResume | --> |     sync_4     | ---
+ * +----------------------+     +--------------------+     +--------------------------+     +-------------------------+     +----------------+     +---------------+     +-----------------+     +----------------+
+ *                                |                                                           |                                                      |                                             |
+ *                                | sync                                                      | sync                                                 | sync                                        | sync
+ *                                v                                                           v                                                      v                                             v
+ *                              +--------------------+     +--------------------------+     +-------------------------+                            +---------------+                             +----------------+
+ *                              | Child onCreateView | --> |   Child onViewCreated    |     | Child onActivityCreated |                            | Child onStart |                             | Child onResume |
+ *                              +--------------------+     +--------------------------+     +-------------------------+                            +---------------+                             +----------------+
+ *
+ *
  *
  * When exiting:
  *
- *    (Force set state of Scene to State.STARTED)
- * 1. Child: onPause
- * 2. Parent: onPause
- *    (Force set state of Scene to State.ACTIVITY_CREATED)
- * 3. Child: onStop
- * 4. Parent: onStop
- *    (Force set state of Scene to State.NONE)
- * 3. Child: onDestroyView -> onDestroy -> onDetach
- * 4. Parent: onDestroyView -> onDestroy -> onDetach
+ * +---------------+     +----------------+     +--------------+     +---------------+     +---------------------+     +----------------------+
+ * | Child onPause | --> |     sync_1     | --> | Child onStop | --> |    sync_2     | --> | Child onDestroyView | --> |        sync_3        | ---
+ * +---------------+     +----------------+     +--------------+     +---------------+     +---------------------+     +----------------------+
+ *                         |                                           |                                                 |
+ *                         | sync                                      | sync                                            | sync
+ *                         v                                           v                                                 v
+ *                       +----------------+                          +---------------+                                 +----------------------+
+ *                       | Parent onPause |                          | Parent onStop |                                 | Parent onDestroyView |
+ *                       +----------------+                          +---------------+                                 +----------------------+
+ *
  *
  * TODO: Must support transaction, so we can add and hide without trigger onResume().
  *       Otherwise, ViewPager will be difficult to handle.
@@ -653,6 +653,26 @@ public abstract class GroupScene extends Scene implements SceneParent {
         if (target != null) {
             this.mLifecycleCallbacks.remove(target);
         }
+    }
+
+    @Override
+    @Nullable
+    public String getSceneDebugInfo(@NonNull Scene scene) {
+        if (scene.getParentScene() == null) {
+            return null;
+        }
+        if (scene.getParentScene() != this) {
+            throw new IllegalArgumentException("Scene parent is incorrect");
+        }
+        String tag = findTagByScene(scene);
+        boolean isHidden = !isShow(scene);
+
+        StringBuilder stringBuilder = new StringBuilder("tag: " + tag + " ");
+        if (isHidden) {
+            stringBuilder.append("hidden ");
+        }
+
+        return stringBuilder.toString();
     }
 
     /**

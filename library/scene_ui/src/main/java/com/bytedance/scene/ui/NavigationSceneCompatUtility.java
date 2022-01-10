@@ -16,15 +16,22 @@
 package com.bytedance.scene.ui;
 
 import android.os.Bundle;
-import android.support.annotation.DrawableRes;
-import android.support.annotation.IdRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
 import android.view.View;
-import com.bytedance.scene.*;
+
+import androidx.annotation.DrawableRes;
+import androidx.annotation.IdRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+
+import com.bytedance.scene.NavigationSceneAvailableCallback;
+import com.bytedance.scene.Scene;
+import com.bytedance.scene.SceneComponentFactory;
+import com.bytedance.scene.SceneDelegate;
+import com.bytedance.scene.SceneLifecycleDispatcher;
+import com.bytedance.scene.ViewFinder;
 import com.bytedance.scene.navigation.NavigationScene;
 import com.bytedance.scene.navigation.NavigationSceneOptions;
 import com.bytedance.scene.utlity.SceneInstanceUtility;

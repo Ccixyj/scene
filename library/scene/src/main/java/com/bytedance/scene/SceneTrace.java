@@ -17,14 +17,14 @@ package com.bytedance.scene;
 
 import android.os.Build;
 import android.os.Trace;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 public final class SceneTrace {
     private SceneTrace() {
 
     }
 
-    public static final boolean VERBOSE_TRACING = true;
+    public static final boolean VERBOSE_TRACING = false;
 
     public static void beginSection(@NonNull String sectionName) {
         if (VERBOSE_TRACING && Build.VERSION.SDK_INT >= 18) {

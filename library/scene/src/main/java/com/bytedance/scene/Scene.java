@@ -17,17 +17,27 @@ package com.bytedance.scene;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.arch.lifecycle.*;
+import android.app.Application;
 import android.content.Context;
 import android.content.res.Resources;
-import android.os.*;
-import android.support.annotation.*;
-import android.support.v4.view.ViewCompat;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Parcelable;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.*;
 
-import com.bytedance.scene.navigation.NavigationScene;
+import androidx.annotation.*;
+import androidx.core.view.ViewCompat;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LifecycleRegistry;
+import androidx.lifecycle.ViewModelStore;
+import androidx.lifecycle.ViewModelStoreOwner;
+
 import com.bytedance.scene.parcel.ParcelConstants;
 import com.bytedance.scene.utlity.ViewRefUtility;
 import com.bytedance.scene.utlity.SceneInternalException;
@@ -37,41 +47,41 @@ import com.bytedance.scene.view.SceneContextThemeWrapper;
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.support.annotation.RestrictTo.Scope.LIBRARY_GROUP;
+import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
 
 /**
  * Created by JiangQi on 7/30/18.
  * No back stack management
  *
- * onAttach
- * onCreate
- * onCreateView
- * onViewCreated
- * onActivityCreated
- * onViewStateRestored (only when App restore)
- * onStart
- * onResume
- *
- * onPause
- * onSaveInstanceState (only when Activity or Fragment is invisible)
- * onStop
- * onDestroyView
- * onDestroy
- * onDetach
- *
- * Initial state: NONE
- *
  * When entering:
- * 1.onAttach -> onCreate -> onCreateView -> onViewCreated: then set state to VIEW_CREATED
- * 2.onActivityCreated: set state to ACTIVITY_CREATED, and set Lifecycle to Lifecycle.Event.ON_CREATE
- * 3.onStart: set state to STARTED, and set Lifecycle to Lifecycle.Event.ON_START
- * 4.onResume: set state to RESUMED, and set Lifecycle to Lifecycle.Event.ON_RESUME
+ *
+ * +--------------+  getView() !=null   +---------------+  View attached to view tree   +-------------------+  Lifecycle.Event.ON_CREATE   +---------+  Lifecycle.Event.ON_START   +----------+  Lifecycle.Event.ON_RESUME
+ * | onCreateView | ------------------> | onViewCreated | ----------------------------> | onActivityCreated | ---------------------------> | onStart | --------------------------> | onResume | ----------------------------
+ * +--------------+                     +---------------+                               +-------------------+                              +---------+                             +----------+
+ *
  *
  * When exiting:
- * 1.onPause: set state to STARTED, and set Lifecycle to Lifecycle.Event.ON_PAUSE
- * 2.onStop: set state to ACTIVITY_CREATED, and set Lifecycle to Lifecycle.Event.ON_STOP
- * 3.onDestroyView: set state to NONE, and set Lifecycle to Lifecycle.Event.ON_DESTROY
- * 4.onDestroy -> onDetach
+ *
+ *      Lifecycle.Event.ON_PAUSE   +---------+  Lifecycle.Event.ON_STOP   +--------+  Lifecycle.Event.ON_DESTROY   +---------------+  getView() == null
+ *     --------------------------> | onPause | -------------------------> | onStop | ----------------------------> | onDestroyView | --------------------
+ *                                 +---------+                            +--------+                               +---------------+
+ *
+ *
+ * Saving and restoring transient UI state：
+ *
+ * onSaveInstanceState will occur before onDestroyView for applications targeting all platforms.
+ *
+ * onSaveInstanceState will occur after onStop for applications targeting platforms >= Android9/P
+ *
+ * saving:
+ * +---------------------+     +---------------+
+ * | onSaveInstanceState | --> | onDestroyView |
+ * +---------------------+     +---------------+
+ *
+ * restoring:
+ * +-------------------+     +---------------------+     +---------+
+ * | onActivityCreated | --> | onViewStateRestored | --> | onStart |
+ * +-------------------+     +---------------------+     +---------+
  *
  *
  * common usage
@@ -123,7 +133,6 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
     private Scene mParentScene;
     private Scope.RootScopeFactory mRootScopeFactory = Scope.DEFAULT_ROOT_SCOPE_FACTORY;
     private Scope mScope;
-    private NavigationScene mNavigationScene;
     private State mState = State.NONE;
     private final StringBuilder mStateHistoryBuilder = new StringBuilder(mState.name);
     private Bundle mArguments;
@@ -269,11 +278,6 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
     public void dispatchAttachScene(@Nullable Scene parentScene) {
         if (parentScene != null) {
             this.mParentScene = parentScene;
-            if (this.mParentScene instanceof NavigationScene) {
-                this.mNavigationScene = (NavigationScene) this.mParentScene;
-            } else {
-                this.mNavigationScene = this.mParentScene.getNavigationScene();
-            }
         }
         mCalled = false;
         onAttach();
@@ -519,7 +523,6 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
     @RestrictTo(LIBRARY_GROUP)
     public void dispatchDetachScene() {
         this.mParentScene = null;
-        this.mNavigationScene = null;
     }
 
     /** @hide */
@@ -824,27 +827,6 @@ public abstract class Scene implements LifecycleOwner, ViewModelStoreOwner {
             }
         }
         return parentScene;
-    }
-
-    @Nullable
-    public final NavigationScene getNavigationScene() {
-        return this.mNavigationScene;
-    }
-
-    @NonNull
-    public final NavigationScene requireNavigationScene() {
-        NavigationScene navigationScene = getNavigationScene();
-        if (navigationScene == null) {
-            Context context = getApplicationContext();
-            if (context == null) {
-                throw new IllegalStateException("Scene " + this + " is not attached to any Scene");
-            } else if (this instanceof NavigationScene) {
-                throw new IllegalStateException("Scene " + this + " is root Scene");
-            } else {
-                throw new IllegalStateException("The root of the Scene hierarchy is not NavigationScene");
-            }
-        }
-        return navigationScene;
     }
 
     @MainThread

@@ -16,20 +16,22 @@
 package com.bytedance.scene.dialog;
 
 import android.app.Activity;
-import android.arch.lifecycle.Lifecycle;
 import android.os.Build;
-import android.support.annotation.NonNull;
+import com.bytedance.scene.navigation.NavigationSceneGetter;
+import androidx.annotation.NonNull;
+import androidx.lifecycle.Lifecycle;
 import com.bytedance.scene.Scene;
 import com.bytedance.scene.animation.animatorexecutor.DialogSceneAnimatorExecutor;
 import com.bytedance.scene.interfaces.PushOptions;
 import com.bytedance.scene.navigation.NavigationScene;
+import com.bytedance.scene.navigation.SceneTranslucent;
 import com.bytedance.scene.utlity.Experimental;
 
 /**
  * Created by JiangQi on 8/2/18.
  */
 @Experimental
-public abstract class DialogScene extends Scene {
+public abstract class DialogScene extends Scene implements SceneTranslucent {
 
     public void show(@NonNull Scene hostScene) {
         if (hostScene.getLifecycle().getCurrentState() == Lifecycle.State.DESTROYED) {
@@ -48,11 +50,11 @@ public abstract class DialogScene extends Scene {
             return;
         }
 
-        NavigationScene navigationScene = hostScene.getNavigationScene();
+        NavigationScene navigationScene = NavigationSceneGetter.getNavigationScene(hostScene);
         if (navigationScene == null) {
             return;
         }
 
-        navigationScene.push(this, new PushOptions.Builder().setAnimation(new DialogSceneAnimatorExecutor()).setTranslucent(true).build());
+        navigationScene.push(this);
     }
 }

@@ -19,17 +19,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.StyleRes;
-import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.bytedance.scene.SceneDelegate;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StyleRes;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.bytedance.scene.NavigationSceneUtility;
 import com.bytedance.scene.Scene;
+import com.bytedance.scene.SceneDelegate;
 import com.bytedance.scene.SingeProcessMessengerHandler;
 import com.bytedance.scene.animation.AnimationInfo;
 import com.bytedance.scene.animation.NavigationAnimationExecutor;
@@ -38,6 +39,7 @@ import com.bytedance.scene.interfaces.PushResultCallback;
 import com.bytedance.scene.navigation.NavigationScene;
 import com.bytedance.scene.navigation.NavigationSceneOptions;
 import com.bytedance.scene.utlity.AnimatorUtility;
+import com.bytedance.scene.navigation.NavigationSceneGetter;
 import com.bytedance.scene.utlity.CancellationSignal;
 import com.bytedance.scene.utlity.NonNullPair;
 
@@ -135,7 +137,7 @@ public class SceneContainerActivity extends AppCompatActivity implements SceneNa
             super.onActivityCreated(savedInstanceState);
             Intent intent = requireActivity().getIntent();
             NonNullPair<? extends Class<? extends Scene>, Bundle> pair = getSceneDataFromIntent(intent);
-            getNavigationScene().push(pair.first,
+            NavigationSceneGetter.requireNavigationScene(this).push(pair.first,
                     pair.second, new PushOptions.Builder().setAnimation(new KeepAnimationExecutor())
                             .setPushResultCallback(new PushResultCallback() {
                                 @Override

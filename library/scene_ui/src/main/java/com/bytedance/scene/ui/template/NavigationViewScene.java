@@ -15,26 +15,27 @@
  */
 package com.bytedance.scene.ui.template;
 
-import android.arch.lifecycle.Lifecycle;
 import android.os.Bundle;
-import android.support.annotation.MenuRes;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.NavigationView;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.MenuRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
+
+import com.bytedance.scene.navigation.NavigationSceneGetter;
 import com.bytedance.scene.Scene;
 import com.bytedance.scene.group.GroupScene;
 import com.bytedance.scene.navigation.OnBackPressedListener;
 import com.bytedance.scene.ui.GroupSceneUIUtility;
 import com.bytedance.scene.ui.R;
+import com.google.android.material.navigation.NavigationView;
 
 import java.util.LinkedHashMap;
 
@@ -83,7 +84,7 @@ public abstract class NavigationViewScene extends GroupScene {
                 mDrawerLayout.openDrawer(Gravity.LEFT);
             }
         });
-        requireNavigationScene().addOnBackPressedListener(this, new OnBackPressedListener() {
+        NavigationSceneGetter.requireNavigationScene(this).addOnBackPressedListener(this, new OnBackPressedListener() {
             @Override
             public boolean onBackPressed() {
                 if (mDrawerLayout.isDrawerOpen(mNavigationView)) {

@@ -15,16 +15,18 @@
  */
 package com.bytedance.scene.ui;
 
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
-import com.bytedance.scene.SceneDelegate;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.bytedance.scene.NavigationSceneUtility;
 import com.bytedance.scene.Scene;
+import com.bytedance.scene.SceneDelegate;
 
 /**
  * Created by JiangQi on 8/24/18.
@@ -39,7 +41,9 @@ public abstract class SceneActivity extends AppCompatActivity {
             getWindow().getDecorView().setSystemUiVisibility(getWindow().getDecorView().getSystemUiVisibility()
                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         }
+        Bundle arguments = getHomeSceneArguments(getIntent());
         this.mDelegate = NavigationSceneUtility.setupWithActivity(this, getHomeSceneClass())
+                .rootSceneArguments(arguments)
                 .supportRestore(supportRestore()).build();
     }
 
@@ -54,4 +58,9 @@ public abstract class SceneActivity extends AppCompatActivity {
     protected abstract Class<? extends Scene> getHomeSceneClass();
 
     protected abstract boolean supportRestore();
+
+    @Nullable
+    protected Bundle getHomeSceneArguments(Intent intent) {
+        return null;
+    }
 }

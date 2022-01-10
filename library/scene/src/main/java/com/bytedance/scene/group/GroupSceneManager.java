@@ -21,27 +21,37 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.IdRes;
-import android.support.annotation.IntDef;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.util.Pair;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.IdRes;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import androidx.core.util.Pair;
 import com.bytedance.scene.Scene;
 import com.bytedance.scene.SceneTrace;
 import com.bytedance.scene.State;
+import com.bytedance.scene.SuppressOperationAware;
 import com.bytedance.scene.animation.AnimationOrAnimator;
 import com.bytedance.scene.animation.AnimationOrAnimatorFactory;
-import com.bytedance.scene.navigation.NavigationScene;
+import com.bytedance.scene.exceptions.IllegalLifecycleException;
 import com.bytedance.scene.parcel.ParcelConstants;
 import com.bytedance.scene.utlity.CancellationSignal;
 import com.bytedance.scene.utlity.SceneInstanceUtility;
 import com.bytedance.scene.utlity.SceneInternalException;
 import com.bytedance.scene.utlity.Utility;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.*;
@@ -318,7 +328,7 @@ class GroupSceneManager {
     private void checkStateChange(@NonNull Scene scene) {
         for (Pair<Scene, String> pair : this.mCurrentTrackMoveStateSceneSet) {
             if (pair.first == scene) {
-                throw new IllegalStateException("Cant add/remove/show/hide " + scene.getClass().getCanonicalName() + " before it finish previous add/remove/show/hide operation or in its lifecycle method");
+                throw new IllegalLifecycleException("Cant add/remove/show/hide " + scene.getClass().getCanonicalName() + " before it finish previous add/remove/show/hide operation or in its lifecycle method");
             }
         }
     }
@@ -331,10 +341,10 @@ class GroupSceneManager {
         }
         //forbid NavigationScene execute navigation stack operation immediately, otherwise GroupScene may sync lifecycle to child,
         //then throw SceneInternalException("Target scene is already tracked")
-        NavigationScene navigationScene = mGroupScene.getNavigationScene();
+        SuppressOperationAware suppressOperationAware = findSuppressOperationAware(mGroupScene.getParentScene());
         String suppressTag = null;
-        if (navigationScene != null) {
-            suppressTag = navigationScene.beginSuppressStackOperation(scene.toString());
+        if (suppressOperationAware != null) {
+            suppressTag = suppressOperationAware.beginSuppressStackOperation(scene.toString());
         } else {
             //execute GroupScene operations before GroupScene attached or after detached
             suppressTag = null;
@@ -355,9 +365,25 @@ class GroupSceneManager {
         }
         String suppressTag = target.second;
         if (suppressTag != null) {
-            mGroupScene.getNavigationScene().endSuppressStackOperation(target.second);
+            SuppressOperationAware suppressOperationAware = findSuppressOperationAware(mGroupScene.getParentScene());
+            suppressOperationAware.endSuppressStackOperation(target.second);
         }
         this.mCurrentTrackMoveStateSceneSet.remove(target);
+    }
+
+    private static SuppressOperationAware findSuppressOperationAware(Scene scene) {
+        if (scene == null) {
+            return null;
+        }
+        if (scene instanceof SuppressOperationAware) {
+            return (SuppressOperationAware) scene;
+        }
+        Scene sceneParent = scene.getParentScene();
+        if (sceneParent != null) {
+            return findSuppressOperationAware(sceneParent);
+        } else {
+            return null;
+        }
     }
 
     public void add(int viewId, Scene scene, String tag, AnimationOrAnimatorFactory animationOrAnimatorFactory) {

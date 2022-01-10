@@ -20,11 +20,6 @@ import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.StringRes;
-import android.support.v4.view.ViewCompat;
-import android.support.v7.widget.Toolbar;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,6 +27,13 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.FrameLayout;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.ViewCompat;
+
+import com.bytedance.scene.navigation.NavigationSceneGetter;
 import com.bytedance.scene.ui.view.NavigationBarView;
 import com.bytedance.scene.ui.view.StatusBarView;
 import com.bytedance.scene.ui.R;
@@ -74,7 +76,7 @@ abstract class SwipeBackAppCompatScene extends SwipeBackGroupScene {
         this.mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getNavigationScene().pop();
+                NavigationSceneGetter.requireNavigationScene(SwipeBackAppCompatScene.this).pop();
             }
         });
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
