@@ -1,6 +1,6 @@
 # Scene
 [![GitHub license](https://img.shields.io/github/license/bytedance/scene)](https://github.com/bytedance/scene/blob/master/LICENSE) 
-![Maven metadata URL](https://img.shields.io/maven-metadata/v?color=green&label=version&metadataUrl=http%3A%2F%2Fjcenter.bintray.com%2Fcom%2Fbytedance%2Fscene%2Fscene%2Fmaven-metadata.xml)
+[![](https://jitpack.io/v/bytedance/scene.svg)](https://jitpack.io/#bytedance/scene)
 [![API](https://img.shields.io/badge/api-14%2B-green)](https://developer.android.com/about/dashboards)
 
 Scene是一个基于View的轻量级导航和页面切分组件库，主要特性：
@@ -16,9 +16,9 @@ Scene是一个基于View的轻量级导航和页面切分组件库，主要特�
 
 ## Apps using Scene
 
-| <img src="misc/xigua.png" alt="xigua" width="100"/> | <img src="misc/douyin.png" alt="douyin" width="100"/> | <img src="http://p3.pstatp.com/origin/2e95100098d5890c5c1c3" alt="lv" width="100"/> | <img src="misc/toutiao.png" alt="toutiao" width="100"/> | 
-|:-----------:|:-------:|:-------:|:-------:|
-| 西瓜视频 | 抖音 | 剪映 | 今日头条 |
+| <img src="misc/xigua.png" alt="xigua" width="100"/> | <img src="misc/douyin.png" alt="douyin" width="100"/> |  <img src="misc/toutiao.png" alt="toutiao" width="100"/> |
+|:-----------:|:-------:|:-------:|
+| 西瓜视频 | 抖音 |  今日头条 |
 
 ## Introduction
 
@@ -50,13 +50,26 @@ Scene框架尝试去解决上面提到的Activity和Fragment存在的问题
 
 ## Get Started
 
-在依赖中添加：
-
+添加仓库源：
 ```gradle
-implementation 'com.bytedance.scene:scene:$latest_version'
-implementation 'com.bytedance.scene:scene-ui:$latest_version'
-implementation 'com.bytedance.scene:scene-shared-element-animation:$latest_version'
-implementation 'com.bytedance.scene:scene-ktx:$latest_version'
+allprojects {
+	repositories {
+		...
+		maven { url 'https://jitpack.io' }
+	}
+}
+```
+
+添加依赖：
+```gradle
+dependencies {
+	implementation 'com.github.bytedance.scene:scene:$latest_version'
+	implementation 'com.github.bytedance.scene:scene_navigation:$latest_version'
+	implementation 'com.github.bytedance.scene:scene_ui:$latest_version'
+	implementation 'com.github.bytedance.scene:scene_dialog:$latest_version'
+	implementation 'com.github.bytedance.scene:scene_shared_element_animation:$latest_version'
+	implementation 'com.github.bytedance.scene:scene_ktx:$latest_version'
+}
 ```
 
 Scene有2个子类：NavigationScene和GroupScene，其中：
